@@ -2,45 +2,58 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/crispy/focus-time-tracker/internal/sheets"
 	"github.com/crispy/focus-time-tracker/internal/analyzer"
 	"github.com/crispy/focus-time-tracker/internal/exporter"
 )
 
 func main() {
-	fmt.Println("Focus Time Tracker & Analyzer - Go Edition")
+	_ = godotenv.Load()
+	fmt.Println("[진단] Focus Time Tracker & Analyzer - Google Sheets 진단 모드")
 
+	// 1. 환경변수 체크
+	creds := os.Getenv("GSHEETS_CREDENTIALS_JSON")
+	if creds == "" {
+		fmt.Println("[에러] 환경변수 GSHEETS_CREDENTIALS_JSON이 비어 있습니다. .env 또는 환경변수 설정을 확인하세요.")
+		os.Exit(1)
+	}
+	fmt.Println("[OK] 환경변수 GSHEETS_CREDENTIALS_JSON이 설정되어 있습니다.")
+
+	// 2. 서비스 계정 이메일 추출
+	type sa struct {
+		ClientEmail string `json:"client_email"`
+	}
+	var s sa
+	err := json.Unmarshal([]byte(creds), &s)
+	if err != nil {
+		fmt.Println("[에러] 서비스 계정 이메일 파싱 실패:", err)
+	} else {
+		fmt.Println("[OK] 서비스 계정 이메일:", s.ClientEmail)
+	}
+
+	// 3. Google Sheets API 인증 및 파일 생성 시도
 	ctx := context.Background()
-
-	// 1. Google Sheets API 서비스 생성
 	srv, err := sheets.NewService(ctx)
 	if err != nil {
-		panic(err)
+		fmt.Println("[에러] Google Sheets API 인증 실패:", err)
+		os.Exit(1)
 	}
+	fmt.Println("[OK] Google Sheets API 인증 성공")
 
-	// 2. (예시) 특정 시트/날짜 데이터 파싱
-	spreadsheetId := "your-spreadsheet-id"
-	sheetName := "4월"
-	dateCol := 2 // 예: 4월 25일이 2번째 날짜라면
-	labels, scores, err := sheets.ParseDailyData(srv, spreadsheetId, sheetName, dateCol)
+	// 4. 파일 생성 시도
+	title := "진단용 테스트시트"
+	year := 2024
+	spreadsheetID, err := sheets.CreateYearlySheet(srv, title, year)
 	if err != nil {
-		panic(err)
+		fmt.Println("[에러] Google Sheets 파일 생성 실패:", err)
+		os.Exit(1)
 	}
-
-	// 3. 집계/분석
-	data := analyzer.AnalyzeFocus(labels, scores)
-	data.Date = "2025-04-25"
-
-	// 4. JSON 저장 및 PR 생성
-	jsonPath := "assets/data/2025-04-25.json"
-	repoPath := "../gitbook-repo" // 실제 GitBook repo 경로
-	branch := "auto/2025-04-25"
-	prTitle := "자동 집중도 데이터: 2025-04-25"
-	if err := exporter.ExportAndPR(data, jsonPath, repoPath, branch, prTitle); err != nil {
-		panic(err)
-	}
-
-	fmt.Println("완료!")
+	fmt.Println("[OK] Google Sheets 파일 생성 성공! Spreadsheet ID:", spreadsheetID)
+	fmt.Println("[참고] https://docs.google.com/spreadsheets/d/" + spreadsheetID)
 } 

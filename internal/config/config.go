@@ -1,13 +1,24 @@
 package config
 
-import "os"
+import (
+	"os"
+	"github.com/joho/godotenv"
+)
 
-// GetEnv: 환경변수 로딩 (기본값 지원)
-func GetEnv(key, defaultVal string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return defaultVal
+type Env struct {
+	GSheetsCredentialsJSON string
+	GSheetsParentFolderID  string
+	GoogleSheetTest        string
+	// 필요한 항목 추가 가능
 }
 
-// TODO: 필요시 config 파일/구조체 등 확장 
+var Envs Env
+
+func LoadEnv() {
+	_ = godotenv.Load("../../.env")
+	Envs = Env{
+		GSheetsCredentialsJSON: os.Getenv("GSHEETS_CREDENTIALS_JSON"),
+		GSheetsParentFolderID:  os.Getenv("GSHEETS_PARENT_FOLDER_ID"),
+		GoogleSheetTest:        os.Getenv("GOOGLE_SHEET_TEST"),
+	}
+} 

@@ -1,0 +1,31 @@
+name: Sheet Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 1 *' # 매년 1월 1일
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Write .env from secrets (root)
+        run: |
+          echo "GSHEETS_CREDENTIALS_JSON=${{ secrets.GSHEETS_CREDENTIALS_JSON }}" > .env
+          echo "GSHEETS_PARENT_FOLDER_ID=${{ secrets.GSHEETS_PARENT_FOLDER_ID }}" >> .env
+          chmod 600 .env
+
+      - name: Run Go app
+        run: go run cmd/tracker/main.go
+
+      - name: Remove .env (cleanup)
+        if: always()
+        run: rm -f .env
