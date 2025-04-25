@@ -14,6 +14,7 @@ jobs:
         with:
           submodules: recursive
           token: ${{ secrets.GH_TOKEN }}
+          ref: main
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -47,3 +48,8 @@ jobs:
       - name: Remove .env (cleanup)
         if: always()
         run: rm -f .env
+
+      - name: Checkout gitbook submodule branch
+        run: |
+          cd gitbook
+          git checkout main
