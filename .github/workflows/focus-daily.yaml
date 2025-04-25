@@ -9,19 +9,35 @@ jobs:
   extract:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
 
+      - name: Set up git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up authentication for main repo
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/heozeop/analysis-focus-level.git
+
+      - name: Set up authentication for gitbook submodule
+        run: |
+          cd gitbook
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/heozeop/gitbook.git
+
       - name: Write .env from secrets (root)
         run: |
           echo "GSHEETS_CREDENTIALS_JSON=${{ secrets.GSHEETS_CREDENTIALS_JSON }}" > .env
           echo "GSHEETS_PARENT_FOLDER_ID=${{ secrets.GSHEETS_PARENT_FOLDER_ID }}" >> .env
-          echo "GITBOOK_REPO_PATH=${{ secrets.GITBOOK_REPO_PATH }}" >> .env
+          echo "GITBOOK_REPO_PATH=gitbook" >> .env
           chmod 600 .env
 
       - name: Run extract

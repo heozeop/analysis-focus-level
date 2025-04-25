@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+	"time"
 
 	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/plot"
@@ -125,13 +126,23 @@ func PlotFocusTrendsAndRegression(data []FocusData, outPath string) error {
 		}
 		eval += fmt.Sprintf("%s: %.2f (%s)  ", cat, slope, trend)
 	}
-	// plotter.Text로 그래프 하단에 텍스트 추가
+	// plotter.Text로 그래프 하단에 텍스트 추가 (평가)
 	label, err := plotter.NewLabels(plotter.XYLabels{
 		XYs:    []plotter.XY{{X: float64(len(data))/2 - 0.5, Y: -10}},
 		Labels: []string{eval},
 	})
 	if err == nil {
 		p.Add(label)
+	}
+
+	// 오늘 날짜 워터마크 추가
+	now := time.Now().Format("2006-01-02 15:04:05")
+	wm, err := plotter.NewLabels(plotter.XYLabels{
+		XYs:    []plotter.XY{{X: float64(len(data))/2 - 0.5, Y: -20}},
+		Labels: []string{now},
+	})
+	if err == nil {
+		p.Add(wm)
 	}
 
 	if err := p.Save(8*vg.Inch, 4*vg.Inch, outPath); err != nil {
