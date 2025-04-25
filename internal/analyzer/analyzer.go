@@ -136,7 +136,13 @@ func PlotFocusTrendsAndRegression(data []FocusData, outPath string) error {
 	}
 
 	// 오늘 날짜 워터마크 추가
-	now := time.Now().Format("2006-01-02 15:04:05")
+	loc, errLoc := time.LoadLocation("Asia/Seoul")
+	var now string
+	if errLoc == nil {
+		now = time.Now().In(loc).Format("2006-01-02 15:04:05")
+	} else {
+		now = time.Now().Format("2006-01-02 15:04:05")
+	}
 	wm, err := plotter.NewLabels(plotter.XYLabels{
 		XYs:    []plotter.XY{{X: float64(len(data))/2 - 0.5, Y: -20}},
 		Labels: []string{now},

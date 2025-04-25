@@ -30,6 +30,12 @@ func ExportToJSON(data analyzer.FocusData, path string) error {
 
 // ExtractAndPush: 어제 날짜의 집중도 데이터를 추출해 JSON으로 저장하고, gitbook repo에 push한다.
 func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *drivev3.Service, folderID, repoPath string, now time.Time) error {
+	// 한국 시간으로 변환
+	loc, err := time.LoadLocation("Asia/Seoul")
+	if err != nil {
+		return fmt.Errorf("Asia/Seoul 타임존 로드 실패: %v", err)
+	}
+	now = now.In(loc)
 	yesterday := now.AddDate(0, 0, -1)
 	year, month, day := yesterday.Date()
 

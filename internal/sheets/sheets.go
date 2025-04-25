@@ -338,6 +338,10 @@ func FindSpreadsheetIDByYear(ctx context.Context, driveSrv *drive.Service, folde
 
 // ExtractDailyFocusData: 특정 연/월/일의 시트 데이터(라벨, 집중도) 추출 및 FocusData 집계
 func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year, month, day int) (analyzer.FocusData, string, error) {
+	loc, err := time.LoadLocation("Asia/Seoul")
+	if err != nil {
+		return analyzer.FocusData{}, "", err
+	}
 	sheetName := fmt.Sprintf("%d월", month)
 	dateCol := day // 1일=1, 2일=2, ...
 	labels, scores, err := ParseDailyData(sheetsSrv, spreadsheetID, sheetName, dateCol)
@@ -345,8 +349,9 @@ func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year
 		return analyzer.FocusData{}, "", err
 	}
 	data := analyzer.AnalyzeFocus(labels, scores)
-	// 날짜 문자열 생성 (YYYY-MM-DD)
-	dateStr := fmt.Sprintf("%04d-%02d-%02d", year, month, day)
+	// 날짜 문자열 생성 (YYYY-MM-DD, 한국시간)
+	date := time.Date(year, time.Month(month), day, 0, 0, 0, 0, loc)
+	dateStr := date.Format("2006-01-02")
 	data.Date = dateStr
 	return data, dateStr, nil
 } 
