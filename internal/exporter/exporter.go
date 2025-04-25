@@ -91,6 +91,9 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 		analyzer.PlotFocusTrendsAndRegression(allData, graphDaily)
 	}
 
+	// 커밋/푸시 전에 main 브랜치로 checkout
+	exec.Command("git", "-C", repoPath, "checkout", "main").Run()
+
 	cmds := [][]string{
 		{"git", "-C", repoPath, "add", ".gitbook/assets/graph.png"},
 		{"git", "-C", repoPath, "commit", "-m", commitMsg},
