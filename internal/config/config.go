@@ -16,6 +16,8 @@ var Envs Env
 
 func LoadEnv() {
 	_ = godotenv.Load("../../.env")
+	_ = godotenv.Load("../.env")
+	_ = godotenv.Load(".env")
 	Envs = Env{
 		GSheetsCredentialsJSON: os.Getenv("GSHEETS_CREDENTIALS_JSON"),
 		GSheetsParentFolderID:  os.Getenv("GSHEETS_PARENT_FOLDER_ID"),

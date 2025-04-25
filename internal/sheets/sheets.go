@@ -35,9 +35,6 @@ func NewService(ctx context.Context) (*sheets.Service, *drive.Service, error) {
 	return sheetsSrv, driveSrv, nil
 }
 
-// TODO: PRD 2.1 - 시트 생성 함수 (연도별, 12개월 탭, 10분 단위 row 등)
-// TODO: PRD 2.2 - 시트 데이터 파싱 함수 (10분 단위, 라벨/집중도) 
-
 // CreateYearlySheet: 연도별 시트 생성 후 폴더로 이동 (환경변수 GSHEETS_PARENT_FOLDER_ID 사용)
 func CreateYearlySheet(sheetsSrv *sheets.Service, driveSrv *drive.Service, title string, year int) (string, error) {
 	spreadsheet := &sheets.Spreadsheet{
@@ -134,6 +131,18 @@ func CreateYearlySheet(sheetsSrv *sheets.Service, driveSrv *drive.Service, title
 					Range: &sheets.GridRange{SheetId: sheetID, StartColumnIndex: 0, EndColumnIndex: 1},
 					Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{BackgroundColor: gray}},
 					Fields: "userEnteredFormat.backgroundColor",
+				},
+			},
+			// A열 고정
+			&sheets.Request{
+				UpdateSheetProperties: &sheets.UpdateSheetPropertiesRequest{
+					Properties: &sheets.SheetProperties{
+						SheetId: sheetID,
+						GridProperties: &sheets.GridProperties{
+							FrozenColumnCount: 1,
+						},
+					},
+					Fields: "gridProperties.frozenColumnCount",
 				},
 			},
 		)
@@ -305,4 +314,33 @@ func toConditionValues(opts []string) []*sheets.ConditionValue {
 		out = append(out, &sheets.ConditionValue{UserEnteredValue: o})
 	}
 	return out
+}
+
+// FindSpreadsheetIDByYear: 폴더 내에서 연도별 규칙적 파일명으로 Google Sheets ID 검색
+func FindSpreadsheetIDByYear(ctx context.Context, driveSrv *drive.Service, folderID string, year int) (string, error) {
+	name := fmt.Sprintf("%d Focus Log", year)
+	q := fmt.Sprintf("name = '%s' and '%s' in parents and mimeType = 'application/vnd.google-apps.spreadsheet'", name, folderID)
+	files, err := driveSrv.Files.List().Q(q).Fields("files(id, name)").Do()
+	if err != nil {
+		return "", err
+	}
+	if len(files.Files) == 0 {
+		return "", fmt.Errorf("해당 연도의 시트를 찾을 수 없음: %s", name)
+	}
+	return files.Files[0].Id, nil
+}
+
+// ExtractDailyFocusData: 특정 연/월/일의 시트 데이터(라벨, 집중도) 추출 및 FocusData 집계
+func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year, month, day int) (FocusData, string, error) {
+	sheetName := fmt.Sprintf("%d월", month)
+	dateCol := day // 1일=1, 2일=2, ...
+	labels, scores, err := ParseDailyData(sheetsSrv, spreadsheetID, sheetName, dateCol)
+	if err != nil {
+		return FocusData{}, "", err
+	}
+	data := AnalyzeFocus(labels, scores)
+	// 날짜 문자열 생성 (YYYY-MM-DD)
+	dateStr := fmt.Sprintf("%04d-%02d-%02d", year, month, day)
+	data.Date = dateStr
+	return data, dateStr, nil
 } 

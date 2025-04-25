@@ -4,21 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
+	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/crispy/focus-time-tracker/internal/config"
 	"github.com/crispy/focus-time-tracker/internal/sheets"
-	"github.com/crispy/focus-time-tracker/internal/analyzer"
-	"github.com/crispy/focus-time-tracker/internal/exporter"
 )
 
 func main() {
-	_ = godotenv.Load()
+	config.LoadEnv()
 	fmt.Println("[진단] Focus Time Tracker & Analyzer - Google Sheets 진단 모드")
 
 	// 1. 환경변수 체크
-	creds := os.Getenv("GSHEETS_CREDENTIALS_JSON")
+	creds := config.Envs.GSheetsCredentialsJSON
 	if creds == "" {
 		fmt.Println("[에러] 환경변수 GSHEETS_CREDENTIALS_JSON이 비어 있습니다. .env 또는 환경변수 설정을 확인하세요.")
 		os.Exit(1)
@@ -39,7 +37,7 @@ func main() {
 
 	// 3. Google Sheets API 인증 및 파일 생성 시도
 	ctx := context.Background()
-	srv, err := sheets.NewService(ctx)
+	sheetsSrv, driveSrv, err := sheets.NewService(ctx)
 	if err != nil {
 		fmt.Println("[에러] Google Sheets API 인증 실패:", err)
 		os.Exit(1)
@@ -48,8 +46,8 @@ func main() {
 
 	// 4. 파일 생성 시도
 	title := "진단용 테스트시트"
-	year := 2024
-	spreadsheetID, err := sheets.CreateYearlySheet(srv, title, year)
+	year := time.Now().Year()
+	spreadsheetID, err := sheets.CreateYearlySheet(sheetsSrv, driveSrv, title, year)
 	if err != nil {
 		fmt.Println("[에러] Google Sheets 파일 생성 실패:", err)
 		os.Exit(1)
