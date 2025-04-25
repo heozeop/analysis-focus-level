@@ -36,10 +36,12 @@ jobs:
 
       - name: Write .env from secrets (root)
         run: |
-          echo "GSHEETS_CREDENTIALS_JSON=${{ secrets.GSHEETS_CREDENTIALS_JSON }}" > .env
+          echo "${{ secrets.GSHEETS_CREDENTIALS_JSON }}" > creds.json
+          echo "GSHEETS_CREDENTIALS_JSON=$(cat creds.json)" > .env
           echo "GSHEETS_PARENT_FOLDER_ID=${{ secrets.GSHEETS_PARENT_FOLDER_ID }}" >> .env
           echo "GITBOOK_REPO_PATH=gitbook" >> .env
           chmod 600 .env
+          rm -f creds.json
 
       - name: Run extract
         run: go run cmd/focus/main.go extract
