@@ -52,8 +52,9 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 	jsonRelPath := filepath.Join("dailydata", "raw", dateStr+".json")
 	commitMsg := "자동 집중도 데이터: " + dateStr
 
-	fmt.Println("[ExtractAndPush] repoPath:", repoPath)
-	fmt.Println("[ExtractAndPush] jsonRelPath:", jsonRelPath)
+	fmt.Printf("[ExtractAndPush] repoPath: %s\n", repoPath)
+	fmt.Printf("[ExtractAndPush] jsonRelPath: %s\n", jsonRelPath)
+	fmt.Printf("[ExtractAndPush] commitMsg: %s\n", commitMsg)
 
 	if err := ExportToJSON(data, jsonRelPath); err != nil {
 		return fmt.Errorf("ExportToJSON 실패: %v", err)
@@ -69,29 +70,34 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 		}
 		for _, f := range files {
 			b, err := os.ReadFile(f)
-			if err != nil { continue }
+			if err != nil { 
+				fmt.Printf("[ExtractAndPush] 파일 읽기 실패: %s (%v)\n", f, err)
+				continue 
+			}
 			var d analyzer.FocusData
-			if err := json.Unmarshal(b, &d); err != nil { continue }
+			if err := json.Unmarshal(b, &d); err != nil { 
+				fmt.Printf("[ExtractAndPush] JSON 파싱 실패: %s (%v)\n", f, err)
+				continue 
+			}
 			allData = append(allData, d)
 		}
 	}
+	fmt.Printf("[ExtractAndPush] 분석 데이터 개수: %d\n", len(allData))
 	if len(allData) > 0 {
-		// .gitbook/assets/graph.png (항상 같은 이름)
 		graphGitbook := filepath.Join(repoPath, ".gitbook", "assets", "graph.png")
-		// 파일이 없으면 빈 파일 생성
 		if _, err := os.Stat(graphGitbook); os.IsNotExist(err) {
 			os.MkdirAll(filepath.Dir(graphGitbook), 0755)
 			os.WriteFile(graphGitbook, []byte{}, 0644)
 		}
+		fmt.Printf("[ExtractAndPush] 그래프 생성: %s\n", graphGitbook)
 		analyzer.PlotFocusTrendsAndRegression(allData, graphGitbook)
-		// dailydata/images/YYYY-MM-DD.png (일자별)
 		imgDir := filepath.Join("dailydata", "images")
 		os.MkdirAll(imgDir, 0755)
 		graphDaily := filepath.Join(imgDir, dateStr+".png")
+		fmt.Printf("[ExtractAndPush] 그래프 생성: %s\n", graphDaily)
 		analyzer.PlotFocusTrendsAndRegression(allData, graphDaily)
 	}
 
-	// 커밋/푸시 전에 main 브랜치로 checkout
 	exec.Command("git", "-C", repoPath, "checkout", "main").Run()
 
 	// 1. gitbook(submodule) push
@@ -102,9 +108,13 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 		{"git", "-C", repoPath, "push", "origin", "HEAD:main"},
 	}
 	for _, args := range gitbookCmds {
+		fmt.Printf("[ExtractAndPush][gitbook] 실행: %v\n", args)
 		cmd := exec.Command(args[0], args[1:]...)
 		if out, err := cmd.CombinedOutput(); err != nil {
+			fmt.Printf("[ExtractAndPush][gitbook] 에러: %s\n", string(out))
 			return fmt.Errorf("[gitbook push 단계] %v: %s", err, string(out))
+		} else {
+			fmt.Printf("[ExtractAndPush][gitbook] 결과: %s\n", string(out))
 		}
 	}
 	fmt.Println("[ExtractAndPush] === gitbook(submodule) push 끝 ===")
@@ -118,9 +128,13 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 		{"git", "push", "origin", "HEAD:main"},
 	}
 	for _, args := range mainCmds {
+		fmt.Printf("[ExtractAndPush][main] 실행: %v\n", args)
 		cmd := exec.Command(args[0], args[1:]...)
 		if out, err := cmd.CombinedOutput(); err != nil {
+			fmt.Printf("[ExtractAndPush][main] 에러: %s\n", string(out))
 			return fmt.Errorf("[main push 단계] %v: %s", err, string(out))
+		} else {
+			fmt.Printf("[ExtractAndPush][main] 결과: %s\n", string(out))
 		}
 	}
 	fmt.Println("[ExtractAndPush] === main push 끝 ===")
