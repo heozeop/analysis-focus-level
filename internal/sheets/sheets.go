@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/crispy/focus-time-tracker/internal/analyzer"
+	"github.com/crispy/focus-time-tracker/internal/config"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
-	"github.com/crispy/focus-time-tracker/internal/config"
 )
 
 // NewService: Google Sheets API + Drive API 서비스 생성 (환경변수 GSHEETS_CREDENTIALS_JSON 사용)
@@ -264,8 +265,8 @@ func colIdxToName(idx int) string {
 // ParseDailyData: 특정 날짜의 10분 단위 라벨/집중도 데이터 파싱
 func ParseDailyData(srv *sheets.Service, spreadsheetID, sheetName string, dateCol int) (labels []string, scores []int, err error) {
 	// dateCol: 1일(Label)이 2, 1일(Focus)이 3, 2일(Label)이 4, ...
-	labelCol := colIdxToName(1 + (dateCol-1)*2) // B, D, F, ...
-	focusCol := colIdxToName(2 + (dateCol-1)*2) // C, E, G, ...
+	labelCol := colIdxToName(2 + (dateCol-1)*2) // B, D, F, ...
+	focusCol := colIdxToName(3 + (dateCol-1)*2) // C, E, G, ...
 	labelRange := fmt.Sprintf("'%s'!%s2:%s145", sheetName, labelCol, labelCol)
 	focusRange := fmt.Sprintf("'%s'!%s2:%s145", sheetName, focusCol, focusCol)
 	labelResp, err := srv.Spreadsheets.Values.Get(spreadsheetID, labelRange).Do()
@@ -289,6 +290,11 @@ func ParseDailyData(srv *sheets.Service, spreadsheetID, sheetName string, dateCo
 		}
 		labels = append(labels, label)
 		scores = append(scores, score)
+	}
+	// 만약 데이터가 완전히 비어있으면 144개 0점으로 채움
+	if len(labelResp.Values) == 0 && len(focusResp.Values) == 0 {
+		labels = make([]string, 144)
+		scores = make([]int, 144)
 	}
 	return labels, scores, nil
 }
@@ -331,14 +337,14 @@ func FindSpreadsheetIDByYear(ctx context.Context, driveSrv *drive.Service, folde
 }
 
 // ExtractDailyFocusData: 특정 연/월/일의 시트 데이터(라벨, 집중도) 추출 및 FocusData 집계
-func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year, month, day int) (FocusData, string, error) {
+func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year, month, day int) (analyzer.FocusData, string, error) {
 	sheetName := fmt.Sprintf("%d월", month)
 	dateCol := day // 1일=1, 2일=2, ...
 	labels, scores, err := ParseDailyData(sheetsSrv, spreadsheetID, sheetName, dateCol)
 	if err != nil {
-		return FocusData{}, "", err
+		return analyzer.FocusData{}, "", err
 	}
-	data := AnalyzeFocus(labels, scores)
+	data := analyzer.AnalyzeFocus(labels, scores)
 	// 날짜 문자열 생성 (YYYY-MM-DD)
 	dateStr := fmt.Sprintf("%04d-%02d-%02d", year, month, day)
 	data.Date = dateStr
