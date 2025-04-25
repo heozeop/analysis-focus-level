@@ -10,39 +10,6 @@ import (
 	"github.com/crispy/focus-time-tracker/internal/analyzer"
 )
 
-func TestSaveDailyJSON(t *testing.T) {
-	tmpDir := t.TempDir()
-	testPath := filepath.Join(tmpDir, "test.json")
-	data := analyzer.FocusData{
-		Date:       "2024-06-01",
-		TotalFocus: 120,
-		Categories: map[string]int{"업무": 60, "학습": 60, "취미": 0, "수면": 0, "이동": 0},
-	}
-	err := SaveDailyJSON(data, testPath)
-	if err != nil {
-		t.Fatalf("SaveDailyJSON failed: %v", err)
-	}
-	// 파일이 생성되었는지 확인
-	f, err := os.Open(testPath)
-	if err != nil {
-		t.Fatalf("JSON file not created: %v", err)
-	}
-	defer f.Close()
-	// JSON 내용 검증
-	var got analyzer.FocusData
-	if err := json.NewDecoder(f).Decode(&got); err != nil {
-		t.Fatalf("Failed to decode JSON: %v", err)
-	}
-	if got.Date != data.Date || got.TotalFocus != data.TotalFocus {
-		t.Errorf("Exported data mismatch: got %+v, want %+v", got, data)
-	}
-	for k, v := range data.Categories {
-		if got.Categories[k] != v {
-			t.Errorf("Category %s mismatch: got %d, want %d", k, got.Categories[k], v)
-		}
-	}
-}
-
 func TestSaveJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "data.json")
@@ -149,5 +116,27 @@ func TestGitRun(t *testing.T) {
 	err := GitRun("not-a-real-git-command")
 	if err == nil {
 		t.Errorf("Expected error for invalid git command, got nil")
+	}
+}
+
+func TestLoadRecentFocusData(t *testing.T) {
+	tmpDir := t.TempDir()
+	// 5일치 데이터 생성
+	for i := 0; i < 5; i++ {
+		path := filepath.Join(tmpDir, fmt.Sprintf("%d.json", i))
+		data := analyzer.FocusData{Date: fmt.Sprintf("2024-06-0%d", i+1), TotalFocus: i * 10, Categories: map[string]int{"업무": i * 10}}
+		b, _ := json.Marshal(data)
+		os.WriteFile(path, b, 0644)
+	}
+	// 최근 3개만 로드
+	all, err := LoadRecentFocusData(tmpDir, 3)
+	if err != nil {
+		t.Fatalf("LoadRecentFocusData failed: %v", err)
+	}
+	if len(all) != 3 {
+		t.Errorf("Expected 3, got %d", len(all))
+	}
+	if all[0].Date != "2024-06-03" || all[2].Date != "2024-06-05" {
+		t.Errorf("Wrong data order: %+v", all)
 	}
 } 
