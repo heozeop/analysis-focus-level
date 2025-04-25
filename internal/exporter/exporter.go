@@ -17,15 +17,25 @@ import (
 
 // ExportToJSON: FocusData를 JSON 파일로 저장 (assets/data/YYYY-MM-DD.json)
 func ExportToJSON(data analyzer.FocusData, path string) error {
+	fmt.Printf("[ExportToJSON] 저장 경로: %s\n", path)
+	fmt.Printf("[ExportToJSON] 데이터 일부: Date=%s, TotalFocus=%d, Categories=%v\n", data.Date, data.TotalFocus, data.Categories)
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		fmt.Printf("[ExportToJSON] 디렉토리 생성 실패: %v\n", err)
 		return err
 	}
 	f, err := os.Create(path)
 	if err != nil {
+		fmt.Printf("[ExportToJSON] 파일 생성 실패: %v\n", err)
 		return err
 	}
 	defer f.Close()
-	return json.NewEncoder(f).Encode(data)
+	err = json.NewEncoder(f).Encode(data)
+	if err != nil {
+		fmt.Printf("[ExportToJSON] JSON 인코딩 실패: %v\n", err)
+		return err
+	}
+	fmt.Printf("[ExportToJSON] 저장 성공\n")
+	return nil
 }
 
 // ExtractAndPush: 어제 날짜의 집중도 데이터를 추출해 JSON으로 저장하고, gitbook repo에 push한다.
