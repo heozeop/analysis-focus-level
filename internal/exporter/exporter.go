@@ -94,20 +94,36 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 	// 커밋/푸시 전에 main 브랜치로 checkout
 	exec.Command("git", "-C", repoPath, "checkout", "main").Run()
 
-	cmds := [][]string{
+	// 1. gitbook(submodule) push
+	fmt.Println("[ExtractAndPush] === gitbook(submodule) push 시작 ===")
+	gitbookCmds := [][]string{
 		{"git", "-C", repoPath, "add", ".gitbook/assets/graph.png"},
 		{"git", "-C", repoPath, "commit", "-m", commitMsg},
 		{"git", "-C", repoPath, "push", "origin", "HEAD:main"},
+	}
+	for _, args := range gitbookCmds {
+		cmd := exec.Command(args[0], args[1:]...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("[gitbook push 단계] %v: %s", err, string(out))
+		}
+	}
+	fmt.Println("[ExtractAndPush] === gitbook(submodule) push 끝 ===")
+
+	// 2. main push
+	fmt.Println("[ExtractAndPush] === main push 시작 ===")
+	mainCmds := [][]string{
 		{"git", "add", filepath.Join("dailydata", "images", dateStr+".png")},
 		{"git", "add", jsonRelPath},
 		{"git", "commit", "-m", commitMsg},
 		{"git", "push", "origin", "HEAD:main"},
 	}
-	for _, args := range cmds {
+	for _, args := range mainCmds {
 		cmd := exec.Command(args[0], args[1:]...)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("%v: %s", err, string(out))
+			return fmt.Errorf("[main push 단계] %v: %s", err, string(out))
 		}
 	}
+	fmt.Println("[ExtractAndPush] === main push 끝 ===")
+
 	return nil
 }
