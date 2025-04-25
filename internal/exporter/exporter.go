@@ -94,11 +94,11 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 	cmds := [][]string{
 		{"git", "-C", repoPath, "add", ".gitbook/assets/graph.png"},
 		{"git", "-C", repoPath, "commit", "-m", commitMsg},
-		{"git", "-C", repoPath, "push"},
+		{"git", "-C", repoPath, "push", "origin", "main"},
 		{"git", "add", filepath.Join("dailydata", "images", dateStr+".png")},
 		{"git", "add", jsonRelPath},
 		{"git", "commit", "-m", commitMsg},
-		{"git", "push"},
+		{"git", "push", "origin", "main"},
 	}
 	for _, args := range cmds {
 		cmd := exec.Command(args[0], args[1:]...)
