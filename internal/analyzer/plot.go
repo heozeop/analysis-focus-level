@@ -237,134 +237,58 @@ func PlotTimeSlotAverageFocusPNGPerDay(data []common.FocusData) (map[string][]by
 	return result, nil
 }
 
-// PlotDailyTotalTrendAndRegressionPNG: x축=일자, y축=일별 총점(하루의 TotalFocus), 1주는 실제, 2주는 regression 예측
-func PlotDailyTotalTrendAndRegressionPNG(data []common.FocusData) ([]byte, error) {
-	if len(data) == 0 {
-		return nil, fmt.Errorf("데이터가 1개 이상 필요합니다.")
-	}
-	// 1. 날짜 오름차순 정렬
-	sorted := make([]common.FocusData, len(data))
-	copy(sorted, data)
-	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Date < sorted[j].Date })
-
-	if len(sorted) == 1 {
-		// 데이터가 1개일 때: 점 하나만 찍힌 그래프
-		p := plot.New()
-		p.Title.Text = "일별 총점 트렌드 (1개 데이터)"
-		p.X.Label.Text = "일자"
-		p.Y.Label.Text = "총점"
-		pts := make(plotter.XYs, 1)
-		pts[0].X = 0
-		pts[0].Y = float64(sorted[0].TotalFocus)
-		// x축 눈금: 날짜 1개
-		p.X.Tick.Marker = plot.ConstantTicks([]plot.Tick{{Value: 0, Label: sorted[0].Date}})
-		p.X.LineStyle.Width = vg.Points(1)
-		p.X.LineStyle.Color = color.Gray{Y: 128}
-		// 점 추가
-		scatter, err := plotter.NewScatter(pts)
-		if err != nil {
-			return nil, err
-		}
-		scatter.GlyphStyle.Color = plotutil.SoftColors[0]
-		scatter.GlyphStyle.Radius = vg.Points(6)
-		p.Add(scatter)
-		p.Legend.Add("실제", scatter)
-		// 워터마크
-		if wm, err := plotter.NewLabels(plotter.XYLabels{
-			XYs:    []plotter.XY{{X: 0, Y: pts[0].Y - 10}},
-			Labels: []string{makeWatermark()},
-		}); err == nil {
-			p.Add(wm)
-		}
-		buf := &bytes.Buffer{}
-		w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")
-		if err != nil {
-			return nil, err
-		}
-		_, err = w.WriteTo(buf)
-		if err != nil {
-			return nil, err
-		}
-		return buf.Bytes(), nil
-	}
-
-	// 2. 최근 7일(1주)만 실제 데이터로 사용
-	var weekData []common.FocusData
-	if len(sorted) > 7 {
-		weekData = sorted[len(sorted)-7:]
-	} else {
-		weekData = sorted
-	}
-
-	// 3. x축: 날짜(문자열), y축: TotalFocus
-	pts := make(plotter.XYs, len(weekData))
-	for i, d := range weekData {
-		pts[i].X = float64(i)
-		pts[i].Y = float64(d.TotalFocus)
-	}
-
-	// 4. 회귀선으로 2주(14일) 예측
-	xs := make([]float64, len(weekData))
-	ys := make([]float64, len(weekData))
-	for i, d := range weekData {
-		xs[i] = float64(i)
-		ys[i] = float64(d.TotalFocus)
-	}
-	slope, intercept := 0.0, 0.0
-	if len(xs) >= 2 {
-		slope, intercept = RegressionTotal(xs, ys)
-	}
-	regPts := make(plotter.XYs, 14)
-	for i := 0; i < 14; i++ {
-		regPts[i].X = float64(i)
-		regPts[i].Y = slope*float64(i) + intercept
-	}
-
-	// 5. 그래프 생성
+// DrawFocusTrends: 준비된 데이터(points, regressionLines, evalText, watermark)로 그림만 그림
+func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string) ([]byte, error) {
 	p := plot.New()
-	p.Title.Text = "일별 총점 트렌드 (1주 실제, 1주 예측)"
+	p.Title.Text = "카테고리별 트렌드 및 회귀선"
 	p.X.Label.Text = "일자"
-	p.Y.Label.Text = "총점"
+	p.Y.Label.Text = "점수"
 
-	// x축 눈금: 실제 날짜 라벨 + 예측 구간은 +N일
-	xticks := []plot.Tick{}
-	for i, d := range weekData {
-		xticks = append(xticks, plot.Tick{Value: float64(i), Label: d.Date})
-	}
-	for i := len(weekData); i < 14; i++ {
-		xticks = append(xticks, plot.Tick{Value: float64(i), Label: fmt.Sprintf("+%d일", i-len(weekData)+1)})
-	}
-	p.X.Tick.Marker = plot.ConstantTicks(xticks)
-	p.X.LineStyle.Width = vg.Points(1)
-	p.X.LineStyle.Color = color.Gray{Y: 128}
+	colors := plotutil.SoftColors
+	colorIdx := 0
+	for cat, pts := range points {
+		l, err := plotter.NewLine(pts)
+		if err != nil {
+			return nil, err
+		}
+		l.Color = colors[colorIdx%len(colors)]
+		l.Width = vg.Points(2)
+		p.Add(l)
+		p.Legend.Add(cat+"(실제)", l)
 
-	// 실제 데이터 라인
-	l, err := plotter.NewLine(pts)
-	if err != nil {
-		return nil, err
+		if regPts, ok := regressionLines[cat]; ok {
+			rl, err := plotter.NewLine(regPts)
+			if err != nil {
+				return nil, err
+			}
+			rl.Color = colors[colorIdx%len(colors)]
+			rl.Dashes = []vg.Length{vg.Points(4), vg.Points(4)}
+			rl.Width = vg.Points(2)
+			p.Add(rl)
+			p.Legend.Add(cat+"(회귀)", rl)
+		}
+		colorIdx++
 	}
-	l.Color = plotutil.SoftColors[0]
-	l.Width = vg.Points(2)
-	p.Add(l)
-	p.Legend.Add("실제", l)
 
-	// 예측(회귀) 라인
-	rl, err := plotter.NewLine(regPts)
-	if err != nil {
-		return nil, err
+	// 평가 텍스트 추가
+	if evalText != "" {
+		labels, err := plotter.NewLabels(plotter.XYLabels{
+			XYs:    []plotter.XY{{X: 0, Y: -10}},
+			Labels: []string{evalText},
+		})
+		if err == nil {
+			p.Add(labels)
+		}
 	}
-	rl.Color = plotutil.SoftColors[1]
-	rl.Dashes = []vg.Length{vg.Points(4), vg.Points(4)}
-	rl.Width = vg.Points(2)
-	p.Add(rl)
-	p.Legend.Add("예측", rl)
-
-	// 워터마크
-	if wm, err := plotter.NewLabels(plotter.XYLabels{
-		XYs:    []plotter.XY{{X: 3, Y: -20}},
-		Labels: []string{makeWatermark()},
-	}); err == nil {
-		p.Add(wm)
+	// 워터마크 추가
+	if watermark != "" {
+		labels, err := plotter.NewLabels(plotter.XYLabels{
+			XYs:    []plotter.XY{{X: 0, Y: -20}},
+			Labels: []string{watermark},
+		})
+		if err == nil {
+			p.Add(labels)
+		}
 	}
 
 	buf := &bytes.Buffer{}
@@ -377,26 +301,4 @@ func PlotDailyTotalTrendAndRegressionPNG(data []common.FocusData) ([]byte, error
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-// RegressionTotal: 단순 선형회귀 (gonum/stat 없이)
-func RegressionTotal(xs, ys []float64) (slope, intercept float64) {
-	n := float64(len(xs))
-	if n < 2 {
-		return 0, 0
-	}
-	sumX, sumY, sumXY, sumXX := 0.0, 0.0, 0.0, 0.0
-	for i := 0; i < int(n); i++ {
-		sumX += xs[i]
-		sumY += ys[i]
-		sumXY += xs[i] * ys[i]
-		sumXX += xs[i] * xs[i]
-	}
-	denom := n*sumXX - sumX*sumX
-	if denom == 0 {
-		return 0, 0
-	}
-	slope = (n*sumXY - sumX*sumY) / denom
-	intercept = (sumY - slope*sumX) / n
-	return
 }
