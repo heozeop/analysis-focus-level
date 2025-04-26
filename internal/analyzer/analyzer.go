@@ -41,13 +41,17 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 	evalText := makeEvalText(data) // 카테고리별 트렌드 평가 텍스트
 	watermark := makeWatermark() // 워터마크(날짜/시간)
 
-	// aggregateLine 계산: 각 일자별로 모든 카테고리 점수의 평균 (0점 제외)
-	aggregateLine := make(plotter.XYs, len(data))
-	for i, d := range data {
+	// aggregateLine 계산: 각 카테고리별로 모든 일자의 평균 (0점 제외)
+	aggregateLine := make(plotter.XYs, len(common.Categories))
+	for i, cat := range common.Categories {
 		sum := 0
 		count := 0
-		for _, v := range d.Categories {
-			if v == 0 {
+		for _, d := range data {
+			if d.Categories == nil {
+				continue
+			}
+			v, ok := d.Categories[cat]
+			if !ok || v == 0 {
 				continue
 			}
 			sum += v
