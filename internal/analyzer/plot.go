@@ -226,20 +226,23 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 			}
 			dateStr := data[i].Date
 			if x, ok := dateToX[dateStr]; ok {
-				newPts = append(newPts, plotter.XY{X: x, Y: pt.Y})
+				// 미래(오늘 이후)는 점을 그리지 않음
+				dateTime, _ := time.Parse("2006-01-02", dateStr)
+				if !dateTime.After(today) {
+					newPts = append(newPts, plotter.XY{X: x, Y: pt.Y})
+				}
 			}
 		}
-		if len(newPts) == 0 {
-			continue
+		if len(newPts) > 0 {
+			l, err := plotter.NewLine(newPts)
+			if err != nil {
+				return nil, err
+			}
+			l.Color = colors[colorIdx%len(colors)]
+			l.Width = vg.Points(2)
+			p.Add(l)
+			p.Legend.Add(cat+"(실제)", l)
 		}
-		l, err := plotter.NewLine(newPts)
-		if err != nil {
-			return nil, err
-		}
-		l.Color = colors[colorIdx%len(colors)]
-		l.Width = vg.Points(2)
-		p.Add(l)
-		p.Legend.Add(cat+"(실제)", l)
 
 		if regPts, ok := regressionLines[cat]; ok {
 			newRegPts := make(plotter.XYs, 0, len(regPts))
@@ -250,6 +253,24 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 				dateStr := data[i].Date
 				if x, ok := dateToX[dateStr]; ok {
 					newRegPts = append(newRegPts, plotter.XY{X: x, Y: pt.Y})
+				}
+			}
+			// 미래 구간(오늘 이후) 회귀선 예측 추가
+			lastY := 0.0
+			if len(regPts) > 0 {
+				lastY = regPts[len(regPts)-1].Y
+			}
+			for i := 7; i < 13; i++ { // x=7~12: 미래
+				dateStr := dates[i]
+				if x, ok := dateToX[dateStr]; ok {
+					// 회귀선의 마지막 기울기와 절편을 이용해 예측값 사용
+					if len(regPts) > 1 {
+						delta := regPts[1].Y - regPts[0].Y
+						predY := regPts[len(regPts)-1].Y + delta*float64(i-len(regPts)+1)
+						newRegPts = append(newRegPts, plotter.XY{X: x, Y: predY})
+					} else {
+						newRegPts = append(newRegPts, plotter.XY{X: x, Y: lastY})
+					}
 				}
 			}
 			if len(newRegPts) > 0 {
@@ -276,10 +297,26 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 			}
 			dateStr := data[i].Date
 			if x, ok := dateToX[dateStr]; ok {
-				newAgg = append(newAgg, plotter.XY{X: x, Y: pt.Y})
+				// 미래(오늘 이후)는 점을 그리지 않음
+				dateTime, _ := time.Parse("2006-01-02", dateStr)
+				if !dateTime.After(today) {
+					newAgg = append(newAgg, plotter.XY{X: x, Y: pt.Y})
+				}
 			}
 		}
+		// 미래 구간(오늘 이후) 회귀선 예측 추가 (aggregate는 선형 보간)
 		if len(newAgg) > 0 {
+			lastY := newAgg[len(newAgg)-1].Y
+			var delta float64
+			if len(newAgg) > 1 {
+				delta = newAgg[len(newAgg)-1].Y - newAgg[len(newAgg)-2].Y
+			}
+			for i := 7; i < 13; i++ { // x=7~12: 미래
+				if x, ok := dateToX[dates[i]]; ok {
+					predY := lastY + delta*float64(i-6)
+					newAgg = append(newAgg, plotter.XY{X: x, Y: predY})
+				}
+			}
 			aggLine, err := plotter.NewLine(newAgg)
 			if err != nil {
 				return nil, err
