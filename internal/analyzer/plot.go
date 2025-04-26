@@ -217,14 +217,15 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 	colors := plotutil.SoftColors
 	colorIdx := 0
 	for cat, pts := range points {
-		// pts의 X를 날짜 기반으로 재설정
+		// pts의 X를 실제 일자 기반으로 재설정
 		newPts := make(plotter.XYs, 0, len(pts))
 		for i, pt := range pts {
-			if i >= len(dates) {
-				break
+			// 일자 정보 추출 (assume data[i].Date)
+			var dateStr string
+			if i < len(points[cat]) && i < len(dates) {
+				dateStr = dates[i]
 			}
-			date := dates[i]
-			if x, ok := dateToX[date]; ok {
+			if x, ok := dateToX[dateStr]; ok {
 				newPts = append(newPts, plotter.XY{X: x, Y: pt.Y})
 			}
 		}
@@ -243,11 +244,11 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		if regPts, ok := regressionLines[cat]; ok {
 			newRegPts := make(plotter.XYs, 0, len(regPts))
 			for i, pt := range regPts {
-				if i >= len(dates) {
-					break
+				var dateStr string
+				if i < len(points[cat]) && i < len(dates) {
+					dateStr = dates[i]
 				}
-				date := dates[i]
-				if x, ok := dateToX[date]; ok {
+				if x, ok := dateToX[dateStr]; ok {
 					newRegPts = append(newRegPts, plotter.XY{X: x, Y: pt.Y})
 				}
 			}
@@ -270,11 +271,11 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 	if aggregateLine != nil && len(aggregateLine) > 0 {
 		newAgg := make(plotter.XYs, 0, len(aggregateLine))
 		for i, pt := range aggregateLine {
-			if i >= len(dates) {
-				break
+			var dateStr string
+			if i < len(dates) {
+				dateStr = dates[i]
 			}
-			date := dates[i]
-			if x, ok := dateToX[date]; ok {
+			if x, ok := dateToX[dateStr]; ok {
 				newAgg = append(newAgg, plotter.XY{X: x, Y: pt.Y})
 			}
 		}
