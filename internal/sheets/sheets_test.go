@@ -95,7 +95,7 @@ func TestExtractDailyFocusDataAPI_Property(t *testing.T) {
 
 	// 엣지 케이스: 빈 데이터
 	sheetsAPI = &MockSheetsAPI{values: [][]interface{}{}}
-	data, dateStr, err = ExtractDailyFocusDataAPI(sheetsAPI, "spreadsheetID", 2024, 6, 1)
+	data, _, err = ExtractDailyFocusDataAPI(sheetsAPI, "spreadsheetID", 2024, 6, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, data.TotalFocus)
 }
