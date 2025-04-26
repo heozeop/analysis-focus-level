@@ -68,4 +68,4 @@ func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year
 	dateStr := date.Format("2006-01-02")
 	data.Date = dateStr
 	return data, dateStr, nil
-} 
+}

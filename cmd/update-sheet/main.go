@@ -14,8 +14,8 @@ import (
 func main() {
 	var (
 		spreadsheetID string
-		year int
-		folderID string
+		year          int
+		folderID      string
 	)
 	config.LoadEnv()
 	currentYear := time.Now().In(time.FixedZone("KST", 9*60*60)).Year()
@@ -58,4 +58,4 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("업그레이드 완료!")
-} 
+}

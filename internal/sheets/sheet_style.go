@@ -30,15 +30,15 @@ func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string
 	requests = append(requests,
 		&sheets.Request{
 			RepeatCell: &sheets.RepeatCellRequest{
-				Range: &sheets.GridRange{SheetId: sheetID, StartRowIndex: 0, EndRowIndex: 1},
-				Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{BackgroundColor: gray}},
+				Range:  &sheets.GridRange{SheetId: sheetID, StartRowIndex: 0, EndRowIndex: 1},
+				Cell:   &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{BackgroundColor: gray}},
 				Fields: "userEnteredFormat.backgroundColor",
 			},
 		},
 		&sheets.Request{
 			RepeatCell: &sheets.RepeatCellRequest{
-				Range: &sheets.GridRange{SheetId: sheetID, StartColumnIndex: 0, EndColumnIndex: 1},
-				Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{BackgroundColor: gray}},
+				Range:  &sheets.GridRange{SheetId: sheetID, StartColumnIndex: 0, EndColumnIndex: 1},
+				Cell:   &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{BackgroundColor: gray}},
 				Fields: "userEnteredFormat.backgroundColor",
 			},
 		},
@@ -58,11 +58,11 @@ func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string
 	// 2. 모든 셀에 검은 border
 	requests = append(requests, &sheets.Request{
 		UpdateBorders: &sheets.UpdateBordersRequest{
-			Range: &sheets.GridRange{SheetId: sheetID},
-			Top:    &sheets.Border{Style: "SOLID", Color: black},
-			Bottom: &sheets.Border{Style: "SOLID", Color: black},
-			Left:   &sheets.Border{Style: "SOLID", Color: black},
-			Right:  &sheets.Border{Style: "SOLID", Color: black},
+			Range:           &sheets.GridRange{SheetId: sheetID},
+			Top:             &sheets.Border{Style: "SOLID", Color: black},
+			Bottom:          &sheets.Border{Style: "SOLID", Color: black},
+			Left:            &sheets.Border{Style: "SOLID", Color: black},
+			Right:           &sheets.Border{Style: "SOLID", Color: black},
 			InnerHorizontal: &sheets.Border{Style: "SOLID", Color: black},
 			InnerVertical:   &sheets.Border{Style: "SOLID", Color: black},
 		},
@@ -139,7 +139,7 @@ func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string
 						}},
 						BooleanRule: &sheets.BooleanRule{
 							Condition: &sheets.BooleanCondition{
-								Type:  "TEXT_EQ",
+								Type:   "TEXT_EQ",
 								Values: []*sheets.ConditionValue{{UserEnteredValue: label}},
 							},
 							Format: &sheets.CellFormat{BackgroundColor: color},
@@ -159,4 +159,4 @@ func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string
 		}
 	}
 	return nil
-} 
+}

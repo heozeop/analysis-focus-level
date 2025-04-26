@@ -33,9 +33,9 @@ func AnalyzeFocus(labels []string, scores []int) common.FocusData {
 		timeSlots[timeKey] += score
 	}
 	return common.FocusData{
-		Categories:  categories,
-		TotalFocus:  totalFocus,
-		TimeSlots:   timeSlots,
+		Categories: categories,
+		TotalFocus: totalFocus,
+		TimeSlots:  timeSlots,
 	}
 }
 
@@ -52,4 +52,4 @@ func Regression(data []common.FocusData, category string) (slope, intercept floa
 	}
 	slope, intercept = stat.LinearRegression(xs, ys, nil, false)
 	return
-} 
+}

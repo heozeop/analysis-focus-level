@@ -59,4 +59,4 @@ func CreateYearlySheet(sheetsSrv *sheets.Service, driveSrv *drive.Service, title
 		}
 	}
 	return spreadsheetID, nil
-} 
+}

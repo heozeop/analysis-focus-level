@@ -136,4 +136,4 @@ func SaveTimeSlotGraphs(data []common.FocusData, dir string) error {
 		return err
 	}
 	return nil
-} 
+}

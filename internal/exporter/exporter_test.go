@@ -140,4 +140,4 @@ func TestLoadRecentFocusData(t *testing.T) {
 	if all[0].Date != "2024-06-03" || all[2].Date != "2024-06-05" {
 		t.Errorf("Wrong data order: %+v", all)
 	}
-} 
+}

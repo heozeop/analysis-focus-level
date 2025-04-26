@@ -28,4 +28,4 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 		return nil, fmt.Errorf("분석할 데이터가 없습니다.")
 	}
 	return PlotDailyTotalTrendAndRegressionPNG(data)
-} 
+}

@@ -99,4 +99,4 @@ func initSheetDataFrom(sheetsSrv *sheets.Service, spreadsheetID, sheetName strin
 		return fmt.Errorf("시트 %s 데이터 초기화 실패: %v", sheetName, err)
 	}
 	return nil
-} 
+}

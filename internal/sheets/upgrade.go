@@ -24,4 +24,4 @@ func UpgradeSheetToNewFormatFrom(sheetsSrv *sheets.Service, spreadsheetID string
 		}
 	}
 	return nil
-} 
+}

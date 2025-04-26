@@ -94,7 +94,10 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 		times = append(times, t)
 	}
 	// 시간 오름차순 정렬
-	type timeSlot struct{ h, m int; s string }
+	type timeSlot struct {
+		h, m int
+		s    string
+	}
 	timeObjs := make([]timeSlot, 0, len(times))
 	for _, t := range times {
 		var h, m int
@@ -169,7 +172,10 @@ func PlotTimeSlotAverageFocusPNGPerDay(data []common.FocusData) (map[string][]by
 		for t := range d.TimeSlots {
 			times = append(times, t)
 		}
-		type timeSlot struct{ h, m int; s string }
+		type timeSlot struct {
+			h, m int
+			s    string
+		}
 		timeObjs := make([]timeSlot, 0, len(times))
 		for _, t := range times {
 			var h, m int

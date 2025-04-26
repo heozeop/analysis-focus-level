@@ -55,4 +55,4 @@ func PushMainAssets(dateStr, jsonRelPath, commitMsg string) error {
 	}
 	log.Println("[PushMainAssets] === main push 끝 ===")
 	return nil
-} 
+}

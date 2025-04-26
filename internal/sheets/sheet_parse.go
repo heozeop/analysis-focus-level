@@ -76,4 +76,4 @@ func toConditionValues(opts []string) []*sheets.ConditionValue {
 		out = append(out, &sheets.ConditionValue{UserEnteredValue: o})
 	}
 	return out
-} 
+}

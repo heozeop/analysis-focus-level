@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/crispy/focus-time-tracker/internal/config"
-	"github.com/crispy/focus-time-tracker/internal/sheets"
 	"github.com/crispy/focus-time-tracker/internal/exporter"
+	"github.com/crispy/focus-time-tracker/internal/sheets"
 )
 
 func main() {

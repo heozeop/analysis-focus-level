@@ -34,4 +34,4 @@ func LoadEnv() {
 		GoogleSheetTest:        os.Getenv("GOOGLE_SHEET_TEST"),
 		GH_TOKEN:               os.Getenv("GH_TOKEN"),
 	}
-} 
+}
