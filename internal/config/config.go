@@ -12,6 +12,8 @@ type Env struct {
 	GSheetsParentFolderID  string
 	GoogleSheetTest        string
 	GH_TOKEN               string
+	RepoDownloadPath       string
+	GitbookRepoPath        string
 	// 필요한 항목 추가 가능
 }
 
@@ -33,5 +35,7 @@ func LoadEnv() {
 		GSheetsParentFolderID:  os.Getenv("GSHEETS_PARENT_FOLDER_ID"),
 		GoogleSheetTest:        os.Getenv("GOOGLE_SHEET_TEST"),
 		GH_TOKEN:               os.Getenv("GH_TOKEN"),
+		RepoDownloadPath:       os.Getenv("REPO_DOWNLOAD_PATH"),
+		GitbookRepoPath:        os.Getenv("GITBOOK_REPO_PATH"),
 	}
 }

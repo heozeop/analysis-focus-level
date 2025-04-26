@@ -16,4 +16,36 @@ format:
 		gofumpt -w .; \
 	else \
 		echo 'gofumpt not found. Install: go install mvdan.cc/gofumpt@latest'; \
-	fi 
+	fi
+
+.PHONY: init
+
+init:
+	@echo 'Installing pre-push git hook...'
+	@mkdir -p .git/hooks
+	@cat > .git/hooks/pre-push <<'EOF'
+#!/bin/sh
+
+# Run tests before pushing
+
+echo 'Running go test...'
+go test ./...
+if [ $$? -ne 0 ]; then
+  echo 'Tests failed. Push aborted.'
+  exit 1
+fi
+
+echo 'Running go vet...'
+go vet ./...
+if [ $$? -ne 0 ]; then
+  echo 'go vet failed. Push aborted.'
+  exit 1
+fi
+
+echo 'All tests and static analysis passed. Push allowed.'
+EOF
+	@chmod +x .git/hooks/pre-push
+	@echo 'pre-push hook installed successfully.'
+	@echo 'Downloading Go modules...'
+	@go mod download
+	@echo 'Go modules downloaded.' 

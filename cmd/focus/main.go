@@ -29,11 +29,13 @@ func extract() {
 		log.Fatalf("Google Sheets API 인증 실패: %v", err)
 	}
 	folderID := config.Envs.GSheetsParentFolderID
-	repoPath := os.Getenv("GITBOOK_REPO_PATH")
-	if folderID == "" || repoPath == "" {
-		log.Fatal("GSHEETS_PARENT_FOLDER_ID, GITBOOK_REPO_PATH 환경변수를 설정하세요.")
+	repoPath := config.Envs.GitbookRepoPath
+	repoDownloadPath := config.Envs.RepoDownloadPath
+
+	if folderID == "" || repoPath == "" || repoDownloadPath == "" {
+		log.Fatal("GSHEETS_PARENT_FOLDER_ID, REPO_DOWNLOAD_PATH 환경변수를 설정하세요.")
 	}
-	if err := exporter.ExtractAndPush(ctx, sheetsSrv, driveSrv, folderID, repoPath, time.Now()); err != nil {
+	if err := exporter.ExtractAndPush(ctx, sheetsSrv, driveSrv, folderID, repoPath, repoDownloadPath, time.Now()); err != nil {
 		log.Fatalf("ExtractAndPush 실패: %v", err)
 	}
 	fmt.Println("완료! Push 완료.")

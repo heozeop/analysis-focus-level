@@ -20,7 +20,7 @@ import (
 // - repoPath: gitbook 저장소 경로
 // - now: 기준 시각 (보통 현재)
 // 반환: 에러 (없으면 nil)
-func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *drivev3.Service, folderID, repoPath string, now time.Time) error {
+func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *drivev3.Service, folderID, repoPath string, repoDownloadPath string, now time.Time) error {
 	// 1. 한국 시간으로 변환
 	loc, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
@@ -59,13 +59,13 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 
 	// 7. 그래프 이미지 생성 (gitbook, dailydata)
 	if len(allData) > 0 {
-		graphGitbook := filepath.Join(repoPath, ".gitbook", "assets", "graph.png")
+		graphGitbook := filepath.Join(repoPath, repoDownloadPath, "graph.png")
 		graphDaily := filepath.Join("dailydata", "images", dateStr+".png")
 		if err := GenerateGraphFile(allData, graphGitbook, graphDaily); err != nil {
 			return err
 		}
 		// 일자별 시간대별 몰입 그래프 저장
-		timeslotGitbook := filepath.Join(repoPath, ".gitbook", "assets", "timeslot-images.png")
+		timeslotGitbook := filepath.Join(repoPath, repoDownloadPath, "timeslot-images.png")
 		timeslotDaily := filepath.Join("dailydata", "timeslot-images", dateStr+".png")
 		if err := SaveTimeSlotGraphs(allData, timeslotGitbook, timeslotDaily); err != nil {
 			return err
