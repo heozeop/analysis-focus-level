@@ -25,7 +25,7 @@ func PreparePlotData(data []common.FocusData) (map[string]plotter.XYs, map[strin
 // 반환: PNG 이미지 []byte, 에러
 func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 	if len(data) == 0 {
-		return nil, fmt.Errorf("분석할 데이터가 없습니다.")
+		return nil, fmt.Errorf("분석할 데이터가 없습니다")
 	}
 	points, regressionLines, evalText, watermark := PreparePlotData(data)
 	return DrawFocusTrends(points, regressionLines, evalText, watermark)
