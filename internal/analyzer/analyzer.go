@@ -65,7 +65,7 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 		aggregateLine[i].Y = avg
 	}
 
-	return DrawFocusTrends(points, regressionLines, evalText, watermark, aggregateLine)
+	return DrawFocusTrends(points, regressionLines, evalText, watermark, aggregateLine, data)
 }
 
 // PlotTimeSlotAverageFocusAggregatePNG: 전체 데이터를 합산하여 단일 평균 라인 그래프를 그림

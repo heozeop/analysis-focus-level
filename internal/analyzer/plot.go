@@ -183,8 +183,9 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 // - evalText: 평가 텍스트
 // - watermark: 워터마크(날짜/시간)
 // - aggregateLine: 전체 평균 라인 (없으면 nil)
+// - data: 추가 데이터 배열
 // 반환: PNG 이미지 []byte, 에러
-func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string, aggregateLine plotter.XYs) ([]byte, error) {
+func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string, aggregateLine plotter.XYs, data []common.FocusData) ([]byte, error) {
 	p := plot.New()
 	p.Title.Text = "카테고리별 트렌드 및 회귀선"
 	p.X.Label.Text = "일자"
@@ -217,14 +218,13 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 	colors := plotutil.SoftColors
 	colorIdx := 0
 	for cat, pts := range points {
-		// pts의 X를 실제 일자 기반으로 재설정
+		// pts의 X를 실제 일자 기반으로 재설정 (data[i].Date 사용)
 		newPts := make(plotter.XYs, 0, len(pts))
 		for i, pt := range pts {
-			// 일자 정보 추출 (assume data[i].Date)
-			var dateStr string
-			if i < len(points[cat]) && i < len(dates) {
-				dateStr = dates[i]
+			if i >= len(data) {
+				break
 			}
+			dateStr := data[i].Date
 			if x, ok := dateToX[dateStr]; ok {
 				newPts = append(newPts, plotter.XY{X: x, Y: pt.Y})
 			}
@@ -244,10 +244,10 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		if regPts, ok := regressionLines[cat]; ok {
 			newRegPts := make(plotter.XYs, 0, len(regPts))
 			for i, pt := range regPts {
-				var dateStr string
-				if i < len(points[cat]) && i < len(dates) {
-					dateStr = dates[i]
+				if i >= len(data) {
+					break
 				}
+				dateStr := data[i].Date
 				if x, ok := dateToX[dateStr]; ok {
 					newRegPts = append(newRegPts, plotter.XY{X: x, Y: pt.Y})
 				}
@@ -271,10 +271,10 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 	if aggregateLine != nil && len(aggregateLine) > 0 {
 		newAgg := make(plotter.XYs, 0, len(aggregateLine))
 		for i, pt := range aggregateLine {
-			var dateStr string
-			if i < len(dates) {
-				dateStr = dates[i]
+			if i >= len(data) {
+				break
 			}
+			dateStr := data[i].Date
 			if x, ok := dateToX[dateStr]; ok {
 				newAgg = append(newAgg, plotter.XY{X: x, Y: pt.Y})
 			}
