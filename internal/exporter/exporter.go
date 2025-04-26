@@ -57,6 +57,11 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 		if err := GenerateGraphFile(allData, graphGitbook, graphDaily); err != nil {
 			return err
 		}
+		// 일자별 시간대별 몰입 그래프 저장
+		timeslotDir := filepath.Join("dailydata", "timeslot-images")
+		if err := SaveTimeSlotGraphs(allData, timeslotDir); err != nil {
+			return err
+		}
 	}
 
 	// 8. gitbook repo main 브랜치로 checkout

@@ -112,4 +112,28 @@ func LoadRecentFocusData(rawDir string, days int) ([]common.FocusData, error) {
 		allData = append(allData, d)
 	}
 	return allData, nil
+}
+
+// SaveTimeSlotGraphs: 일자별 시간대별 몰입 그래프를 PNG로 저장 + 7일 평균 그래프도 저장
+func SaveTimeSlotGraphs(data []common.FocusData, dir string) error {
+	graphs, err := analyzer.PlotTimeSlotAverageFocusPNGPerDay(data)
+	if err != nil {
+		return err
+	}
+	for date, img := range graphs {
+		path := filepath.Join(dir, date+".png")
+		if err := WriteFile(path, img); err != nil {
+			return err
+		}
+	}
+	// 7일 평균 시간대별 몰입 그래프 저장
+	avgImg, err := analyzer.PlotTimeSlotAverageFocusPNG(data)
+	if err != nil {
+		return err
+	}
+	avgPath := filepath.Join(".gitbook", "assets", "images", "timeslot-avg.png")
+	if err := WriteFile(avgPath, avgImg); err != nil {
+		return err
+	}
+	return nil
 } 

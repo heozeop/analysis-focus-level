@@ -1,20 +1,20 @@
 package analyzer
 
 import (
+	"fmt"
+
 	"github.com/crispy/focus-time-tracker/internal/common"
 	"gonum.org/v1/gonum/stat"
 )
 
 // AnalyzeFocus: 10분 단위 라벨/집중도 데이터 → FocusData 집계
 func AnalyzeFocus(labels []string, scores []int) common.FocusData {
-	categories := map[string]int{
-		"업무": 0,
-		"학습": 0,
-		"취미": 0,
-		"수면": 0,
-		"이동": 0,
+	categories := make(map[string]int)
+	for _, cat := range common.Categories {
+		categories[cat] = 0
 	}
 	totalFocus := 0
+	timeSlots := make(map[string]int)
 	for i, label := range labels {
 		score := 0
 		if i < len(scores) {
@@ -26,10 +26,16 @@ func AnalyzeFocus(labels []string, scores []int) common.FocusData {
 				totalFocus += score
 			}
 		}
+		// 시간대별 몰입 합계 계산 (10분 단위)
+		hour := i / 6
+		min := (i % 6) * 10
+		timeKey := fmt.Sprintf("%02d:%02d", hour, min)
+		timeSlots[timeKey] += score
 	}
 	return common.FocusData{
 		Categories:  categories,
 		TotalFocus:  totalFocus,
+		TimeSlots:   timeSlots,
 	}
 }
 

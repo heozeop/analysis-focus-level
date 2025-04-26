@@ -27,6 +27,5 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("분석할 데이터가 없습니다.")
 	}
-	points, regressionLines, evalText, watermark := PreparePlotData(data)
-	return PlotFocusTrendsAndRegressionPNG(points, regressionLines, evalText, watermark)
+	return PlotDailyTotalTrendAndRegressionPNG(data)
 } 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/crispy/focus-time-tracker/internal/common"
 	"google.golang.org/api/sheets/v4"
 )
 
@@ -19,16 +18,13 @@ func colIdxToName(idx int) string {
 	return name
 }
 
-// ParseDailyData: 각 날짜, 각 카테고리별 [Label, Focus, 확인] 컬럼을 읽고, 확인(체크)된 데이터만 반환
+// ParseDailyData: 각 날짜, 각 카테고리별 [Label, Focus] 컬럼을 읽고, 값이 있는 데이터만 반환
 func ParseDailyData(srv *sheets.Service, spreadsheetID, sheetName string, dateCol int) (labels []string, scores []int, err error) {
-	categories := common.Categories
-	catCount := len(categories)
 	rowCount := 144
 	// dateCol: 1일=1, 2일=2, ...
-	// 1일의 첫 번째 카테고리 Label 컬럼 인덱스: 2 + (dateCol-1)*catCount*3
-	startCol := 2 + (dateCol-1)*catCount*3
-	// 전체 읽을 범위: Label~확인까지 모든 카테고리
-	endCol := startCol + catCount*3 - 1
+	// 1일의 Label 컬럼 인덱스: 2 + (dateCol-1)*2
+	startCol := 2 + (dateCol-1)*2
+	endCol := startCol + 1
 	startColName := colIdxToName(startCol)
 	endColName := colIdxToName(endCol)
 	rangeStr := fmt.Sprintf("'%s'!%s2:%s145", sheetName, startColName, endColName)
@@ -41,25 +37,19 @@ func ParseDailyData(srv *sheets.Service, spreadsheetID, sheetName string, dateCo
 		if i < len(resp.Values) {
 			row = resp.Values[i]
 		}
-		for catIdx := 0; catIdx < catCount; catIdx++ {
-			label := ""
-			score := 0
-			confirm := ""
-			if len(row) > catIdx*3 {
-				label = fmt.Sprintf("%v", row[catIdx*3])
+		label := ""
+		score := 0
+		if len(row) > 0 {
+			label = fmt.Sprintf("%v", row[0])
+		}
+		if len(row) > 1 {
+			if v, err := strconv.Atoi(fmt.Sprintf("%v", row[1])); err == nil {
+				score = v
 			}
-			if len(row) > catIdx*3+1 {
-				if v, err := strconv.Atoi(fmt.Sprintf("%v", row[catIdx*3+1])); err == nil {
-					score = v
-				}
-			}
-			if len(row) > catIdx*3+2 {
-				confirm = fmt.Sprintf("%v", row[catIdx*3+2])
-			}
-			if confirm == "TRUE" || confirm == "true" || confirm == "1" {
-				labels = append(labels, label)
-				scores = append(scores, score)
-			}
+		}
+		if label != "" {
+			labels = append(labels, label)
+			scores = append(scores, score)
 		}
 	}
 	return labels, scores, nil
