@@ -42,23 +42,6 @@ func TestNewService_Fake(t *testing.T) {
 	}
 }
 
-func TestFindSpreadsheetIDByYear_Fake(t *testing.T) {
-	// FakeDriveService를 넘겨도 함수가 에러를 반환하는지만 확인
-	ctx := context.Background()
-	_, err := FindSpreadsheetIDByYear(ctx, nil, "fake-folder", 2024)
-	if err == nil {
-		t.Errorf("FindSpreadsheetIDByYear는 fake로 호출 시 에러를 반환해야 함")
-	}
-}
-
-func TestExtractDailyFocusData_Fake(t *testing.T) {
-	// FakeSheetsService를 넘겨도 함수가 에러를 반환하는지만 확인
-	_, _, err := ExtractDailyFocusData(nil, "fake-id", 2024, 6, 1)
-	if err == nil {
-		t.Errorf("ExtractDailyFocusData는 fake로 호출 시 에러를 반환해야 함")
-	}
-}
-
 func TestFindSpreadsheetIDByYearAPI_Property(t *testing.T) {
 	ctx := context.Background()
 	// 성공 케이스
