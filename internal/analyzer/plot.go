@@ -349,6 +349,9 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		}
 	}
 
+	p.Y.Min = 0
+	p.Y.Max = 725
+
 	buf := &bytes.Buffer{}
 	w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")
 	if err != nil {
