@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/crispy/focus-time-tracker/internal/common"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/drive/v3"
 )
@@ -67,7 +68,7 @@ func TestExtractDailyFocusDataAPI_Property(t *testing.T) {
 	data, dateStr, err := ExtractDailyFocusDataAPI(sheetsAPI, "spreadsheetID", 2024, 6, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "2024-06-01", dateStr)
-	assert.Equal(t, 2, len(data.Categories))
+	assert.Equal(t, len(common.Categories), len(data.Categories))
 	assert.Equal(t, 10, data.Categories["업무"])
 	assert.Equal(t, 20, data.Categories["학습"])
 
