@@ -1,27 +1,54 @@
-# Focus Time Tracker & Analyzer
+# Focus Time Tracker
 
-몰입 시간(집중 시간) 기록, 분석, 시각화 자동화 도구 (Go + Google Sheets + GitHub Actions + Chart.js)
+## 소개
 
-## 주요 기능
-- Google Sheets 연동: 10분 단위 집중도/라벨 기록
-- 일별 JSON 데이터 자동 생성 및 PR
-- 카테고리별 집중 시간/회귀 분석
-- GitBook용 동적 추세 그래프 데이터 제공
+이 프로젝트는 몰입 시간 분석 및 시각화, Google Sheets 연동, 자동화된 리포트/그래프 생성 등을 지원하는 Go 기반 분석 도구입니다.
 
-## 프로젝트 구조
-```
-cmd/tracker/         # 메인 실행 파일
-internal/sheets/     # Google Sheets 연동
-internal/analyzer/   # 데이터 분석/회귀
-internal/exporter/   # JSON/PR 자동화
-internal/config/     # 설정/환경변수
-assets/data/         # 일별 JSON 데이터
-scripts/             # 운영 자동화 스크립트
-.github/workflows/   # GitHub Actions
-```
+## 개발 환경
+- Go 1.17 이상 권장
+- 주요 의존성: gonum/plot, Google Sheets API 등
 
-## 빌드/실행
+## 코드 포맷팅 (Google 스타일)
+
+코드 스타일은 Google Go 스타일을 따르며, 아래 도구를 사용해 자동 포맷팅합니다:
+- **gofmt**: 기본 Go 포맷터
+- **goimports**: import 자동 정리
+- **gofumpt**: Google 스타일에 더 엄격한 포맷터
+
+### 포맷팅 실행 방법
+
 ```sh
-go build -o tracker ./cmd/tracker
-./tracker
-``` 
+make format
+```
+- gofmt, goimports, gofumpt가 순서대로 실행됩니다.
+- goimports, gofumpt가 설치되어 있지 않으면 설치 안내 메시지가 출력됩니다.
+
+#### 도구 설치
+아래 명령어로 필요한 도구를 설치하세요:
+```sh
+go install golang.org/x/tools/cmd/goimports@latest
+go install mvdan.cc/gofumpt@latest
+```
+설치 후, `$HOME/go/bin`이 PATH에 포함되어 있어야 합니다.
+
+### PATH 설정 예시
+```sh
+export PATH=$HOME/go/bin:$PATH
+```
+
+## 테스트
+
+```sh
+go test ./...
+```
+
+## 주요 Makefile 명령어
+- `make format` : 코드 자동 포맷팅 (Google 스타일)
+
+## 기타
+- Google Sheets 연동, 자동화, 그래프 생성 등은 소스 내 주석 및 예시 코드를 참고하세요.
+- 린트(lint)는 별도로 제공하지 않으며, 필요시 golangci-lint 등 추가 도구를 직접 설치해 사용할 수 있습니다.
+
+---
+
+문의/기여는 PR 또는 이슈로 남겨주세요. 
