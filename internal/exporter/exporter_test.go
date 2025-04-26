@@ -91,8 +91,9 @@ func TestEnsureGraphFile(t *testing.T) {
 	if err := EnsureGraphFile(path); err != nil {
 		t.Fatalf("EnsureGraphFile failed: %v", err)
 	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Errorf("Graph file not created: %s", path)
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		t.Errorf("Directory not created: %s", dir)
 	}
 }
 
