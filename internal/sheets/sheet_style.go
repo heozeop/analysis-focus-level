@@ -9,9 +9,9 @@ import (
 
 // applySheetStyles: 월별 시트에 스타일, 유효성, 조건부 서식 적용 (카테고리 수만큼 동적 확장)
 func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string) error {
-	categories := common.Categories
-	catCount := len(categories)
 	const maxDays = 31
+	const maxCols = 1 + maxDays*2 // 시간 + (31일*2)
+	categories := common.Categories
 	labelColors := map[string]*sheets.Color{}
 	for _, cat := range categories {
 		rgb := common.CategoryColors[cat]
@@ -80,93 +80,74 @@ func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string
 			},
 		})
 	}
-	// 3. 각 날짜, 각 카테고리별로 Label/Focus/확인 컬럼에 유효성/조건부서식 적용
+	// 3. 각 날짜별로 Label/Focus 컬럼에 유효성/조건부서식 적용 (카테고리 드롭다운은 Label에만)
 	for d := 0; d < maxDays; d++ {
-		for catIdx := range categories {
-			// 컬럼 인덱스 계산
-			labelCol := 1 + d*catCount*3 + catIdx*3
-			focusCol := labelCol + 1
-			confirmCol := labelCol + 2
-			// Label 드롭다운
-			requests = append(requests, &sheets.Request{
-				SetDataValidation: &sheets.SetDataValidationRequest{
-					Range: &sheets.GridRange{
-						SheetId:          sheetID,
-						StartRowIndex:    1,
-						EndRowIndex:      145,
-						StartColumnIndex: int64(labelCol),
-						EndColumnIndex:   int64(labelCol + 1),
-					},
-					Rule: &sheets.DataValidationRule{
-						Condition: &sheets.BooleanCondition{
-							Type:   "ONE_OF_LIST",
-							Values: toConditionValues(common.Categories),
-						},
-						Strict: true,
-					},
+		labelCol := 1 + d*2
+		focusCol := labelCol + 1
+		if labelCol >= maxCols || focusCol >= maxCols {
+			break
+		}
+		// Label 드롭다운
+		requests = append(requests, &sheets.Request{
+			SetDataValidation: &sheets.SetDataValidationRequest{
+				Range: &sheets.GridRange{
+					SheetId:          sheetID,
+					StartRowIndex:    1,
+					EndRowIndex:      145,
+					StartColumnIndex: int64(labelCol),
+					EndColumnIndex:   int64(labelCol + 1),
 				},
-			})
-			// Focus 숫자만
-			requests = append(requests, &sheets.Request{
-				SetDataValidation: &sheets.SetDataValidationRequest{
-					Range: &sheets.GridRange{
-						SheetId:          sheetID,
-						StartRowIndex:    1,
-						EndRowIndex:      145,
-						StartColumnIndex: int64(focusCol),
-						EndColumnIndex:   int64(focusCol + 1),
+				Rule: &sheets.DataValidationRule{
+					Condition: &sheets.BooleanCondition{
+						Type:   "ONE_OF_LIST",
+						Values: toConditionValues(categories),
 					},
-					Rule: &sheets.DataValidationRule{
-						Condition: &sheets.BooleanCondition{
-							Type:   "NUMBER_BETWEEN",
-							Values: []*sheets.ConditionValue{{UserEnteredValue: "0"}, {UserEnteredValue: "100"}},
-						},
-						Strict: true,
-					},
+					Strict: true,
 				},
-			})
-			// 확인 체크박스
-			requests = append(requests, &sheets.Request{
-				SetDataValidation: &sheets.SetDataValidationRequest{
-					Range: &sheets.GridRange{
-						SheetId:          sheetID,
-						StartRowIndex:    1,
-						EndRowIndex:      145,
-						StartColumnIndex: int64(confirmCol),
-						EndColumnIndex:   int64(confirmCol + 1),
-					},
-					Rule: &sheets.DataValidationRule{
-						Condition: &sheets.BooleanCondition{
-							Type: "BOOLEAN",
-						},
-						Strict: false,
-					},
+			},
+		})
+		// Focus 숫자만
+		requests = append(requests, &sheets.Request{
+			SetDataValidation: &sheets.SetDataValidationRequest{
+				Range: &sheets.GridRange{
+					SheetId:          sheetID,
+					StartRowIndex:    1,
+					EndRowIndex:      145,
+					StartColumnIndex: int64(focusCol),
+					EndColumnIndex:   int64(focusCol + 1),
 				},
-			})
-			// Label 조건부 색상
-			for label, color := range labelColors {
-				requests = append(requests, &sheets.Request{
-					AddConditionalFormatRule: &sheets.AddConditionalFormatRuleRequest{
-						Rule: &sheets.ConditionalFormatRule{
-							Ranges: []*sheets.GridRange{{
-								SheetId:          sheetID,
-								StartRowIndex:    1,
-								EndRowIndex:      145,
-								StartColumnIndex: int64(labelCol),
-								EndColumnIndex:   int64(labelCol + 1),
-							}},
-							BooleanRule: &sheets.BooleanRule{
-								Condition: &sheets.BooleanCondition{
-									Type:  "TEXT_EQ",
-									Values: []*sheets.ConditionValue{{UserEnteredValue: label}},
-								},
-								Format: &sheets.CellFormat{BackgroundColor: color},
+				Rule: &sheets.DataValidationRule{
+					Condition: &sheets.BooleanCondition{
+						Type:   "NUMBER_BETWEEN",
+						Values: []*sheets.ConditionValue{{UserEnteredValue: "0"}, {UserEnteredValue: "100"}},
+					},
+					Strict: true,
+				},
+			},
+		})
+		// Label 조건부 색상
+		for label, color := range labelColors {
+			requests = append(requests, &sheets.Request{
+				AddConditionalFormatRule: &sheets.AddConditionalFormatRuleRequest{
+					Rule: &sheets.ConditionalFormatRule{
+						Ranges: []*sheets.GridRange{{
+							SheetId:          sheetID,
+							StartRowIndex:    1,
+							EndRowIndex:      145,
+							StartColumnIndex: int64(labelCol),
+							EndColumnIndex:   int64(labelCol + 1),
+						}},
+						BooleanRule: &sheets.BooleanRule{
+							Condition: &sheets.BooleanCondition{
+								Type:  "TEXT_EQ",
+								Values: []*sheets.ConditionValue{{UserEnteredValue: label}},
 							},
+							Format: &sheets.CellFormat{BackgroundColor: color},
 						},
-						Index: 0,
 					},
-				})
-			}
+					Index: 0,
+				},
+			})
 		}
 	}
 	if len(requests) > 0 {

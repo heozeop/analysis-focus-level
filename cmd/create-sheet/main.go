@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	// 기본: 진단 모드
 	config.LoadEnv()
 	fmt.Println("[진단] Focus Time Tracker & Analyzer - Google Sheets 진단 모드")
 
@@ -54,4 +55,4 @@ func main() {
 	}
 	fmt.Println("[OK] Google Sheets 파일 생성 성공! Spreadsheet ID:", spreadsheetID)
 	fmt.Println("[참고] https://docs.google.com/spreadsheets/d/" + spreadsheetID)
-} 
+}

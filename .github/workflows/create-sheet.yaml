@@ -24,7 +24,7 @@ jobs:
           chmod 600 .env
 
       - name: Run Go app
-        run: go run cmd/tracker/main.go
+        run: go run cmd/create-sheet/main.go
 
       - name: Remove .env (cleanup)
         if: always()
