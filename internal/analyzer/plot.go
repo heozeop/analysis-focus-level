@@ -303,17 +303,16 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 				}
 			}
 		}
-		// 미래 구간(오늘 이후) 회귀선 예측 추가 (aggregate는 선형 보간, 기울기 2배)
+		// 미래 구간(오늘 이후) 회귀선 예측: 이전 aggregate Y값의 평균 사용
 		if len(newAgg) > 0 {
-			lastY := newAgg[len(newAgg)-1].Y
-			var delta float64
-			if len(newAgg) > 1 {
-				delta = (newAgg[len(newAgg)-1].Y - newAgg[len(newAgg)-2].Y) * 2
+			var meanY float64
+			for _, pt := range newAgg {
+				meanY += pt.Y
 			}
+			meanY = meanY / float64(len(newAgg))
 			for i := 7; i < 13; i++ { // x=7~12: 미래
 				if x, ok := dateToX[dates[i]]; ok {
-					predY := lastY + delta*float64(i-6)
-					newAgg = append(newAgg, plotter.XY{X: x, Y: predY})
+					newAgg = append(newAgg, plotter.XY{X: x, Y: meanY})
 				}
 			}
 			aggLine, err := plotter.NewLine(newAgg)
