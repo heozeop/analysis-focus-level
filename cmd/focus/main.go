@@ -20,7 +20,6 @@ func main() {
 		return
 	}
 	fmt.Println("Usage: focus extract | analyze")
-
 }
 
 func extract() {

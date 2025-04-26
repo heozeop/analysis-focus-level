@@ -32,7 +32,7 @@ func SaveJSON(data common.FocusData, path string) error {
 
 // EnsureDir: 디렉토리 생성 (없으면)
 func EnsureDir(path string) error {
-	return os.MkdirAll(path, 0755)
+	return os.MkdirAll(path, 0o755)
 }
 
 // WriteFile: 파일 저장 (경로 자동 생성)
@@ -40,7 +40,7 @@ func WriteFile(path string, data []byte) error {
 	if err := EnsureDir(filepath.Dir(path)); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, data, 0644)
+	return ioutil.WriteFile(path, data, 0o644)
 }
 
 // EnsureGraphFile: 그래프 파일 저장 전 디렉토리만 생성

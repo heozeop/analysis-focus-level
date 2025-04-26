@@ -59,7 +59,7 @@ func TestListRecentFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	for i := 0; i < 5; i++ {
 		name := filepath.Join(tmpDir, fmt.Sprintf("%d.json", i))
-		os.WriteFile(name, []byte("{}"), 0644)
+		os.WriteFile(name, []byte("{}"), 0o644)
 	}
 	files, err := ListRecentFiles(tmpDir, 3)
 	if err != nil {
@@ -75,7 +75,7 @@ func TestReadFocusDataFile(t *testing.T) {
 	path := filepath.Join(tmpDir, "focus.json")
 	data := common.FocusData{Date: "2024-06-03", TotalFocus: 50, Categories: map[string]int{"업무": 50}}
 	b, _ := json.Marshal(data)
-	os.WriteFile(path, b, 0644)
+	os.WriteFile(path, b, 0o644)
 	got, err := ReadFocusDataFile(path)
 	if err != nil {
 		t.Fatalf("ReadFocusDataFile failed: %v", err)
@@ -127,7 +127,7 @@ func TestLoadRecentFocusData(t *testing.T) {
 		path := filepath.Join(tmpDir, fmt.Sprintf("%d.json", i))
 		data := common.FocusData{Date: fmt.Sprintf("2024-06-0%d", i+1), TotalFocus: i * 10, Categories: map[string]int{"업무": i * 10}}
 		b, _ := json.Marshal(data)
-		os.WriteFile(path, b, 0644)
+		os.WriteFile(path, b, 0o644)
 	}
 	// 최근 3개만 로드
 	all, err := LoadRecentFocusData(tmpDir, 3)
