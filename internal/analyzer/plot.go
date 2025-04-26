@@ -255,22 +255,21 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 					newRegPts = append(newRegPts, plotter.XY{X: x, Y: pt.Y})
 				}
 			}
-			// 미래 구간(오늘 이후) 회귀선 예측 추가
+			// 미래 구간(오늘 이후) 회귀선 예측 추가 (기울기 2배 반영)
 			lastY := 0.0
-			if len(regPts) > 0 {
+			var lastDelta float64
+			if len(regPts) > 1 {
+				lastDelta = regPts[len(regPts)-1].Y - regPts[len(regPts)-2].Y
+				lastY = regPts[len(regPts)-1].Y
+			} else if len(regPts) > 0 {
 				lastY = regPts[len(regPts)-1].Y
 			}
 			for i := 7; i < 13; i++ { // x=7~12: 미래
 				dateStr := dates[i]
 				if x, ok := dateToX[dateStr]; ok {
-					// 회귀선의 마지막 기울기와 절편을 이용해 예측값 사용
-					if len(regPts) > 1 {
-						delta := regPts[1].Y - regPts[0].Y
-						predY := regPts[len(regPts)-1].Y + delta*float64(i-len(regPts)+1)
-						newRegPts = append(newRegPts, plotter.XY{X: x, Y: predY})
-					} else {
-						newRegPts = append(newRegPts, plotter.XY{X: x, Y: lastY})
-					}
+					// 마지막 기울기를 2배로 반영
+					predY := lastY + lastDelta*2*float64(i-len(regPts)+1)
+					newRegPts = append(newRegPts, plotter.XY{X: x, Y: predY})
 				}
 			}
 			if len(newRegPts) > 0 {
@@ -288,7 +287,7 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		colorIdx++
 	}
 
-	// aggregateLine이 있으면 굵은 검정색 선으로 추가
+	// aggregateLine이 있으면 굵은 검정색 선으로 항상 추가
 	if aggregateLine != nil && len(aggregateLine) > 0 {
 		newAgg := make(plotter.XYs, 0, len(aggregateLine))
 		for i, pt := range aggregateLine {
@@ -304,12 +303,12 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 				}
 			}
 		}
-		// 미래 구간(오늘 이후) 회귀선 예측 추가 (aggregate는 선형 보간)
+		// 미래 구간(오늘 이후) 회귀선 예측 추가 (aggregate는 선형 보간, 기울기 2배)
 		if len(newAgg) > 0 {
 			lastY := newAgg[len(newAgg)-1].Y
 			var delta float64
 			if len(newAgg) > 1 {
-				delta = newAgg[len(newAgg)-1].Y - newAgg[len(newAgg)-2].Y
+				delta = (newAgg[len(newAgg)-1].Y - newAgg[len(newAgg)-2].Y) * 2
 			}
 			for i := 7; i < 13; i++ { // x=7~12: 미래
 				if x, ok := dateToX[dates[i]]; ok {
