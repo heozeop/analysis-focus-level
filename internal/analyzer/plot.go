@@ -85,57 +85,15 @@ func makeWatermark() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
 
-// PlotTimeSlotAverageFocusPNG: 시간대별 평균 몰입 점수 그래프를 PNG로 저장
+// PlotTimeSlotAverageFocusPNG: 시간대별 일자별 평균 몰입 점수 그래프를 PNG로 저장
 // - data: 여러 일자의 FocusData 배열
 // 반환: PNG 이미지 []byte, 에러
 func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
-	// 1. 모든 시간대별 점수 합계/카운트 집계
-	timeSlotSum := map[string]int{}
-	timeSlotCount := map[string]int{}
-	for _, d := range data {
-		for t, v := range d.TimeSlots {
-			timeSlotSum[t] += v
-			timeSlotCount[t]++
-		}
-	}
-	// 2. 시간대 정렬 (오름차순)
-	times := make([]string, 0, len(timeSlotSum))
-	for t := range timeSlotSum {
-		times = append(times, t)
-	}
-	type timeSlot struct {
-		h, m int
-		s    string
-	}
-	timeObjs := make([]timeSlot, 0, len(times))
-	for _, t := range times {
-		var h, m int
-		fmt.Sscanf(t, "%02d:%02d", &h, &m)
-		timeObjs = append(timeObjs, timeSlot{h, m, t})
-	}
-	sort.Slice(timeObjs, func(i, j int) bool {
-		if timeObjs[i].h == timeObjs[j].h {
-			return timeObjs[i].m < timeObjs[j].m
-		}
-		return timeObjs[i].h < timeObjs[j].h
-	})
-	// 3. plotter.XYs 생성 (x: 시간, y: 평균 점수)
-	pts := make(plotter.XYs, len(timeObjs))
-	for i, obj := range timeObjs {
-		avg := 0.0
-		if timeSlotCount[obj.s] > 0 {
-			avg = float64(timeSlotSum[obj.s]) / float64(timeSlotCount[obj.s])
-		}
-		pts[i].X = float64(obj.h) + float64(obj.m)/60.0
-		pts[i].Y = avg
-	}
-	// 4. plot 객체 생성 및 라인 추가
 	p := plot.New()
-	p.Title.Text = "시간대별 평균 몰입 점수"
+	p.Title.Text = "시간대별 일자별 평균 몰입 점수"
 	p.X.Label.Text = "시간"
 	p.Y.Label.Text = "평균 몰입 점수"
 
-	// x축 눈금/선 명시적 추가
 	p.X.Tick.Marker = plot.ConstantTicks([]plot.Tick{
 		{Value: 0, Label: "0"}, {Value: 6, Label: "6"}, {Value: 12, Label: "12"}, {Value: 18, Label: "18"}, {Value: 24, Label: "24"},
 	})
@@ -150,37 +108,21 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 		p.Add(wm)
 	}
 
-	l, err := plotter.NewLine(pts)
-	if err != nil {
-		return nil, err
-	}
-	l.Color = plotutil.SoftColors[0]
-	l.Width = vg.Points(2)
-	p.Add(l)
-	p.X.Min = 0
-	p.X.Max = 24
-	p.Y.Min = 0
-	buf := &bytes.Buffer{}
-	w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")
-	if err != nil {
-		return nil, err
-	}
-	_, err = w.WriteTo(buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-// PlotTimeSlotAverageFocusPNGPerDay: 일자별 시간대별 평균 몰입 점수 그래프를 PNG로 저장
-// - data: 여러 일자의 FocusData 배열
-// 반환: map[일자]PNG []byte, 에러
-func PlotTimeSlotAverageFocusPNGPerDay(data []common.FocusData) (map[string][]byte, error) {
-	result := make(map[string][]byte)
-	for _, d := range data {
-		// 1. 시간대별 점수 추출 (해당 일자만)
-		times := make([]string, 0, len(d.TimeSlots))
-		for t := range d.TimeSlots {
+	colors := plotutil.SoftColors
+	for idx, d := range data {
+		// 시간대별 점수 집계 (0점 제외)
+		timeSlotSum := map[string]int{}
+		timeSlotCount := map[string]int{}
+		for t, v := range d.TimeSlots {
+			if v == 0 {
+				continue
+			}
+			timeSlotSum[t] += v
+			timeSlotCount[t]++
+		}
+		// 시간대 정렬
+		times := make([]string, 0, len(timeSlotSum))
+		for t := range timeSlotSum {
 			times = append(times, t)
 		}
 		type timeSlot struct {
@@ -201,60 +143,48 @@ func PlotTimeSlotAverageFocusPNGPerDay(data []common.FocusData) (map[string][]by
 		})
 		pts := make(plotter.XYs, len(timeObjs))
 		for i, obj := range timeObjs {
+			avg := 0.0
+			if timeSlotCount[obj.s] > 0 {
+				avg = float64(timeSlotSum[obj.s]) / float64(timeSlotCount[obj.s])
+			}
 			pts[i].X = float64(obj.h) + float64(obj.m)/60.0
-			pts[i].Y = float64(d.TimeSlots[obj.s])
+			pts[i].Y = avg
 		}
-		p := plot.New()
-		p.Title.Text = d.Date + " 시간대별 몰입 점수"
-		p.X.Label.Text = "시간"
-		p.Y.Label.Text = "몰입 점수"
-
-		// x축 눈금/선 명시적 추가
-		p.X.Tick.Marker = plot.ConstantTicks([]plot.Tick{
-			{Value: 0, Label: "0"}, {Value: 6, Label: "6"}, {Value: 12, Label: "12"}, {Value: 18, Label: "18"}, {Value: 24, Label: "24"},
-		})
-		p.X.LineStyle.Width = vg.Points(1)
-		p.X.LineStyle.Color = color.Gray{Y: 128}
-
-		// 워터마크 추가
-		if wm, err := plotter.NewLabels(plotter.XYLabels{
-			XYs:    []plotter.XY{{X: 12, Y: p.Y.Min - 5}},
-			Labels: []string{makeWatermark()},
-		}); err == nil {
-			p.Add(wm)
+		if len(pts) == 0 {
+			continue
 		}
-
 		l, err := plotter.NewLine(pts)
 		if err != nil {
 			return nil, err
 		}
-		l.Color = plotutil.SoftColors[0]
+		l.Color = colors[idx%len(colors)]
 		l.Width = vg.Points(2)
 		p.Add(l)
-		p.X.Min = 0
-		p.X.Max = 24
-		p.Y.Min = 0
-		buf := &bytes.Buffer{}
-		w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")
-		if err != nil {
-			return nil, err
-		}
-		_, err = w.WriteTo(buf)
-		if err != nil {
-			return nil, err
-		}
-		result[d.Date] = buf.Bytes()
+		p.Legend.Add(d.Date, l)
 	}
-	return result, nil
+	p.X.Min = 0
+	p.X.Max = 24
+	p.Y.Min = 0
+	buf := &bytes.Buffer{}
+	w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")
+	if err != nil {
+		return nil, err
+	}
+	_, err = w.WriteTo(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
-// DrawFocusTrends: 준비된 데이터(points, regressionLines, evalText, watermark)로 그림만 그림
+// DrawFocusTrends: 준비된 데이터(points, regressionLines, evalText, watermark, aggregateLine)로 그림만 그림
 // - points: 카테고리별 실제 점 데이터
 // - regressionLines: 카테고리별 회귀선 데이터
 // - evalText: 평가 텍스트
 // - watermark: 워터마크(날짜/시간)
+// - aggregateLine: 전체 평균 라인 (없으면 nil)
 // 반환: PNG 이미지 []byte, 에러
-func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string) ([]byte, error) {
+func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string, aggregateLine plotter.XYs) ([]byte, error) {
 	p := plot.New()
 	p.Title.Text = "카테고리별 트렌드 및 회귀선"
 	p.X.Label.Text = "일자"
@@ -284,6 +214,18 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 			p.Legend.Add(cat+"(회귀)", rl)
 		}
 		colorIdx++
+	}
+
+	// aggregateLine이 있으면 굵은 검정색 선으로 추가
+	if aggregateLine != nil && len(aggregateLine) > 0 {
+		aggLine, err := plotter.NewLine(aggregateLine)
+		if err != nil {
+			return nil, err
+		}
+		aggLine.Color = color.Black
+		aggLine.Width = vg.Points(4)
+		p.Add(aggLine)
+		p.Legend.Add("전체 평균", aggLine)
 	}
 
 	// 평가 텍스트 추가

@@ -29,6 +29,7 @@ func PushGitbookAssets(repoPath, commitMsg string) error {
 	log.Println("[PushGitbookAssets] === gitbook(submodule) push 시작 ===")
 	cmds := [][]string{
 		{"-C", repoPath, "add", ".gitbook/assets/graph.png"},
+		{"-C", repoPath, "add", ".gitbook/assets/timeslot-images.png"},
 		{"-C", repoPath, "commit", "-m", commitMsg},
 		{"-C", repoPath, "pull", "--rebase", "origin", "main"},
 		{"-C", repoPath, "push", "--no-verify", "origin", "HEAD:main"},

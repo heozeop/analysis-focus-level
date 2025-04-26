@@ -131,7 +131,7 @@ func LoadRecentFocusData(rawDir string, days int) ([]common.FocusData, error) {
 // - paths: 저장할 경로들
 func SaveTimeSlotGraphs(data []common.FocusData, paths ...string) error {
 	// 7일 평균 시간대별 몰입 그래프 저장
-	avgImg, err := analyzer.PlotTimeSlotAverageFocusPNG(data)
+	avgImg, err := analyzer.PlotTimeSlotAverageFocusAggregatePNG(data)
 	if err != nil {
 		return err
 	}

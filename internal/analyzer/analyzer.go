@@ -31,6 +31,67 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("분석할 데이터가 없습니다")
 	}
-	points, regressionLines, evalText, watermark := PreparePlotData(data)
-	return DrawFocusTrends(points, regressionLines, evalText, watermark)
+	// PreparePlotData logic inlined here
+	points := map[string]plotter.XYs{} // 카테고리별 실제 점 데이터
+	regressionLines := map[string]plotter.XYs{} // 카테고리별 회귀선 데이터
+	for _, cat := range common.Categories {
+		points[cat] = makeCategoryPoints(data, cat) // 실제 점 생성
+		regressionLines[cat] = makeRegressionPoints(data, cat) // 회귀선 생성
+	}
+	evalText := makeEvalText(data) // 카테고리별 트렌드 평가 텍스트
+	watermark := makeWatermark() // 워터마크(날짜/시간)
+
+	// aggregateLine 계산: 각 일자별로 모든 카테고리 점수의 평균 (0점 제외)
+	aggregateLine := make(plotter.XYs, len(data))
+	for i, d := range data {
+		sum := 0
+		count := 0
+		for _, v := range d.Categories {
+			if v == 0 {
+				continue
+			}
+			sum += v
+			count++
+		}
+		avg := 0.0
+		if count > 0 {
+			avg = float64(sum) / float64(count)
+		}
+		aggregateLine[i].X = float64(i)
+		aggregateLine[i].Y = avg
+	}
+
+	return DrawFocusTrends(points, regressionLines, evalText, watermark, aggregateLine)
+}
+
+// PlotTimeSlotAverageFocusAggregatePNG: 전체 데이터를 합산하여 단일 평균 라인 그래프를 그림
+// - data: 여러 일자의 FocusData 배열
+// 반환: PNG 이미지 []byte, 에러
+func PlotTimeSlotAverageFocusAggregatePNG(data []common.FocusData) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("분석할 데이터가 없습니다")
+	}
+	// 시간대별 합산 및 평균 계산 (0점 제외)
+	timeSlotSum := map[string]int{}
+	timeSlotCount := map[string]int{}
+	for _, d := range data {
+		for t, v := range d.TimeSlots {
+			if v == 0 {
+				continue
+			}
+			timeSlotSum[t] += v
+			timeSlotCount[t]++
+		}
+	}
+	agg := common.FocusData{
+		Date:      "Aggregate",
+		TimeSlots: map[string]int{},
+	}
+	for t, sum := range timeSlotSum {
+		if timeSlotCount[t] > 0 {
+			agg.TimeSlots[t] = int(float64(sum) / float64(timeSlotCount[t]) + 0.5) // 반올림
+		}
+	}
+	
+	return PlotTimeSlotAverageFocusPNG([]common.FocusData{agg})
 }
