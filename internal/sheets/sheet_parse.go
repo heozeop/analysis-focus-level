@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/crispy/focus-time-tracker/internal/common"
 	"google.golang.org/api/sheets/v4"
 )
 
@@ -18,39 +19,48 @@ func colIdxToName(idx int) string {
 	return name
 }
 
-// ParseDailyData: 특정 날짜의 10분 단위 라벨/집중도 데이터 파싱
+// ParseDailyData: 각 날짜, 각 카테고리별 [Label, Focus, 확인] 컬럼을 읽고, 확인(체크)된 데이터만 반환
 func ParseDailyData(srv *sheets.Service, spreadsheetID, sheetName string, dateCol int) (labels []string, scores []int, err error) {
-	// dateCol: 1일(Label)이 2, 1일(Focus)이 3, 2일(Label)이 4, ...
-	labelCol := colIdxToName(2 + (dateCol-1)*2) // B, D, F, ...
-	focusCol := colIdxToName(3 + (dateCol-1)*2) // C, E, G, ...
-	labelRange := fmt.Sprintf("'%s'!%s2:%s145", sheetName, labelCol, labelCol)
-	focusRange := fmt.Sprintf("'%s'!%s2:%s145", sheetName, focusCol, focusCol)
-	labelResp, err := srv.Spreadsheets.Values.Get(spreadsheetID, labelRange).Do()
+	categories := common.Categories
+	catCount := len(categories)
+	rowCount := 144
+	// dateCol: 1일=1, 2일=2, ...
+	// 1일의 첫 번째 카테고리 Label 컬럼 인덱스: 2 + (dateCol-1)*catCount*3
+	startCol := 2 + (dateCol-1)*catCount*3
+	// 전체 읽을 범위: Label~확인까지 모든 카테고리
+	endCol := startCol + catCount*3 - 1
+	startColName := colIdxToName(startCol)
+	endColName := colIdxToName(endCol)
+	rangeStr := fmt.Sprintf("'%s'!%s2:%s145", sheetName, startColName, endColName)
+	resp, err := srv.Spreadsheets.Values.Get(spreadsheetID, rangeStr).Do()
 	if err != nil {
 		return nil, nil, err
 	}
-	focusResp, err := srv.Spreadsheets.Values.Get(spreadsheetID, focusRange).Do()
-	if err != nil {
-		return nil, nil, err
-	}
-	for i := 0; i < 144; i++ {
-		label := ""
-		if i < len(labelResp.Values) && len(labelResp.Values[i]) > 0 {
-			label = fmt.Sprintf("%v", labelResp.Values[i][0])
+	for i := 0; i < rowCount; i++ {
+		row := []interface{}{}
+		if i < len(resp.Values) {
+			row = resp.Values[i]
 		}
-		score := 0
-		if i < len(focusResp.Values) && len(focusResp.Values[i]) > 0 {
-			if v, err := strconv.Atoi(fmt.Sprintf("%v", focusResp.Values[i][0])); err == nil {
-				score = v
+		for catIdx := 0; catIdx < catCount; catIdx++ {
+			label := ""
+			score := 0
+			confirm := ""
+			if len(row) > catIdx*3 {
+				label = fmt.Sprintf("%v", row[catIdx*3])
+			}
+			if len(row) > catIdx*3+1 {
+				if v, err := strconv.Atoi(fmt.Sprintf("%v", row[catIdx*3+1])); err == nil {
+					score = v
+				}
+			}
+			if len(row) > catIdx*3+2 {
+				confirm = fmt.Sprintf("%v", row[catIdx*3+2])
+			}
+			if confirm == "TRUE" || confirm == "true" || confirm == "1" {
+				labels = append(labels, label)
+				scores = append(scores, score)
 			}
 		}
-		labels = append(labels, label)
-		scores = append(scores, score)
-	}
-	// 만약 데이터가 완전히 비어있으면 144개 0점으로 채움
-	if len(labelResp.Values) == 0 && len(focusResp.Values) == 0 {
-		labels = make([]string, 144)
-		scores = make([]int, 144)
 	}
 	return labels, scores, nil
 }
