@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"path/filepath"
 )
 
 // GitRun runs a git command and logs output.
@@ -42,8 +41,7 @@ func PushGitbookAssets(repoPath, commitMsg string) error {
 func PushMainAssets(dateStr, jsonRelPath, commitMsg string) error {
 	log.Println("[PushMainAssets] === main push 시작 ===")
 	cmds := [][]string{
-		{"add", filepath.Join("dailydata", "images", dateStr+".png")},
-		{"add", jsonRelPath},
+		{"add", "."},
 		{"commit", "-m", commitMsg},
 		{"pull", "--rebase", "origin", "main"},
 		{"push", "--no-verify", "origin", "HEAD:main"},
