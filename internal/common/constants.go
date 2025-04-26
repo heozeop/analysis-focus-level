@@ -1,4 +1,4 @@
-package analyzer
+package common
 
 // Categories: 집중도 분석에 사용되는 공통 카테고리
 // - 업무, 학습, 취미, 수면, 이동 순서로 고정

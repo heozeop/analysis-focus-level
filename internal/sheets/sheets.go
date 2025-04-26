@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/crispy/focus-time-tracker/internal/analyzer"
+	"github.com/crispy/focus-time-tracker/internal/common"
 	"github.com/crispy/focus-time-tracker/internal/config"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
@@ -50,16 +51,16 @@ func FindSpreadsheetIDByYear(ctx context.Context, driveSrv *drive.Service, folde
 }
 
 // ExtractDailyFocusData: 특정 연/월/일의 시트 데이터(라벨, 집중도) 추출 및 FocusData 집계
-func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year, month, day int) (analyzer.FocusData, string, error) {
+func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year, month, day int) (common.FocusData, string, error) {
 	loc, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		return analyzer.FocusData{}, "", err
+		return common.FocusData{}, "", err
 	}
 	sheetName := fmt.Sprintf("%d월", month)
 	dateCol := day // 1일=1, 2일=2, ...
 	labels, scores, err := ParseDailyData(sheetsSrv, spreadsheetID, sheetName, dateCol)
 	if err != nil {
-		return analyzer.FocusData{}, "", err
+		return common.FocusData{}, "", err
 	}
 	data := analyzer.AnalyzeFocus(labels, scores)
 	// 날짜 문자열 생성 (YYYY-MM-DD, 한국시간)

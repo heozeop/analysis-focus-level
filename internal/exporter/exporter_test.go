@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crispy/focus-time-tracker/internal/analyzer"
+	"github.com/crispy/focus-time-tracker/internal/common"
 )
 
 func TestSaveJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "data.json")
-	data := analyzer.FocusData{Date: "2024-06-02", TotalFocus: 100, Categories: map[string]int{"업무": 100}}
+	data := common.FocusData{Date: "2024-06-02", TotalFocus: 100, Categories: map[string]int{"업무": 100}}
 	err := SaveJSON(data, path)
 	if err != nil {
 		t.Fatalf("SaveJSON failed: %v", err)
@@ -22,7 +22,7 @@ func TestSaveJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("File not created: %v", err)
 	}
-	var got analyzer.FocusData
+	var got common.FocusData
 	if err := json.Unmarshal(b, &got); err != nil {
 		t.Fatalf("Unmarshal failed: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestListRecentFiles(t *testing.T) {
 func TestReadFocusDataFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "focus.json")
-	data := analyzer.FocusData{Date: "2024-06-03", TotalFocus: 50, Categories: map[string]int{"업무": 50}}
+	data := common.FocusData{Date: "2024-06-03", TotalFocus: 50, Categories: map[string]int{"업무": 50}}
 	b, _ := json.Marshal(data)
 	os.WriteFile(path, b, 0644)
 	got, err := ReadFocusDataFile(path)
@@ -99,7 +99,7 @@ func TestEnsureGraphFile(t *testing.T) {
 func TestGenerateGraphFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "graph.png")
-	data := []analyzer.FocusData{
+	data := []common.FocusData{
 		{Date: "2024-06-01", Categories: map[string]int{"업무": 10, "학습": 20, "취미": 0, "수면": 0, "이동": 0}},
 		{Date: "2024-06-02", Categories: map[string]int{"업무": 20, "학습": 10, "취미": 0, "수면": 0, "이동": 0}},
 	}
@@ -124,7 +124,7 @@ func TestLoadRecentFocusData(t *testing.T) {
 	// 5일치 데이터 생성
 	for i := 0; i < 5; i++ {
 		path := filepath.Join(tmpDir, fmt.Sprintf("%d.json", i))
-		data := analyzer.FocusData{Date: fmt.Sprintf("2024-06-0%d", i+1), TotalFocus: i * 10, Categories: map[string]int{"업무": i * 10}}
+		data := common.FocusData{Date: fmt.Sprintf("2024-06-0%d", i+1), TotalFocus: i * 10, Categories: map[string]int{"업무": i * 10}}
 		b, _ := json.Marshal(data)
 		os.WriteFile(path, b, 0644)
 	}

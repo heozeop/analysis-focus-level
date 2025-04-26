@@ -9,10 +9,11 @@ import (
 	"path/filepath"
 
 	"github.com/crispy/focus-time-tracker/internal/analyzer"
+	"github.com/crispy/focus-time-tracker/internal/common"
 )
 
 // SaveJSON saves FocusData as JSON to the given path.
-func SaveJSON(data analyzer.FocusData, path string) error {
+func SaveJSON(data common.FocusData, path string) error {
 	log.Printf("[SaveJSON] 저장 경로: %s", path)
 	if err := EnsureDir(filepath.Dir(path)); err != nil {
 		return fmt.Errorf("디렉토리 생성 실패: %w", err)
@@ -58,21 +59,21 @@ func ListRecentFiles(dir string, n int) ([]string, error) {
 	return files, nil
 }
 
-func ReadFocusDataFile(path string) (analyzer.FocusData, error) {
+func ReadFocusDataFile(path string) (common.FocusData, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return analyzer.FocusData{}, err
+		return common.FocusData{}, err
 	}
-	var d analyzer.FocusData
+	var d common.FocusData
 	if err := json.Unmarshal(b, &d); err != nil {
-		return analyzer.FocusData{}, err
+		return common.FocusData{}, err
 	}
 	return d, nil
 }
 
 // GenerateGraphFile: 동일 이미지를 여러 경로에 저장
-func GenerateGraphFile(data []analyzer.FocusData, paths ...string) error {
-	b, err := analyzer.PlotFocusTrendsAndRegressionPNG(data)
+func GenerateGraphFile(data []common.FocusData, paths ...string) error {
+	b, err := analyzer.PlotFocusTrendsAndRegression(data)
 	if err != nil {
 		return err
 	}
@@ -88,7 +89,7 @@ func GenerateGraphFile(data []analyzer.FocusData, paths ...string) error {
 }
 
 // LoadRecentFocusData: 최근 N일치 FocusData를 로드
-func LoadRecentFocusData(rawDir string, days int) ([]analyzer.FocusData, error) {
+func LoadRecentFocusData(rawDir string, days int) ([]common.FocusData, error) {
 	files, err := filepath.Glob(filepath.Join(rawDir, "*.json"))
 	if err != nil {
 		return nil, fmt.Errorf("파일 glob 실패: %w", err)
@@ -96,14 +97,14 @@ func LoadRecentFocusData(rawDir string, days int) ([]analyzer.FocusData, error) 
 	if len(files) > days {
 		files = files[len(files)-days:]
 	}
-	var allData []analyzer.FocusData
+	var allData []common.FocusData
 	for _, f := range files {
 		b, err := os.ReadFile(f)
 		if err != nil {
 			log.Printf("[LoadRecentFocusData] 파일 읽기 실패: %s (%v)", f, err)
 			continue
 		}
-		var d analyzer.FocusData
+		var d common.FocusData
 		if err := json.Unmarshal(b, &d); err != nil {
 			log.Printf("[LoadRecentFocusData] JSON 파싱 실패: %s (%v)", f, err)
 			continue

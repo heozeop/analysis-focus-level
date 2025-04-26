@@ -1,9 +1,9 @@
 package analyzer
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/crispy/focus-time-tracker/internal/common"
 )
 
 func TestAnalyzeFocus(t *testing.T) {
@@ -23,7 +23,7 @@ func TestAnalyzeFocus(t *testing.T) {
 }
 
 func TestRegression(t *testing.T) {
-	data := []FocusData{
+	data := []common.FocusData{
 		{Categories: map[string]int{"업무": 10}},
 		{Categories: map[string]int{"업무": 20}},
 		{Categories: map[string]int{"업무": 30}},
@@ -38,7 +38,7 @@ func TestRegression(t *testing.T) {
 }
 
 func TestMakeCategoryPoints(t *testing.T) {
-	data := []FocusData{
+	data := []common.FocusData{
 		{Categories: map[string]int{"업무": 10}},
 		{Categories: map[string]int{"업무": 20}},
 	}
@@ -49,7 +49,7 @@ func TestMakeCategoryPoints(t *testing.T) {
 }
 
 func TestMakeRegressionPoints(t *testing.T) {
-	data := []FocusData{
+	data := []common.FocusData{
 		{Categories: map[string]int{"업무": 10}},
 		{Categories: map[string]int{"업무": 20}},
 	}
@@ -63,7 +63,7 @@ func TestMakeRegressionPoints(t *testing.T) {
 }
 
 func TestMakeEvalText(t *testing.T) {
-	data := []FocusData{
+	data := []common.FocusData{
 		{Categories: map[string]int{"업무": 10, "학습": 20, "취미": 0, "수면": 0, "이동": 0}},
 		{Categories: map[string]int{"업무": 20, "학습": 10, "취미": 0, "수면": 0, "이동": 0}},
 	}
@@ -80,25 +80,21 @@ func TestMakeWatermark(t *testing.T) {
 	}
 }
 
-func TestNewFocusPlot(t *testing.T) {
-	p := newFocusPlot()
-	if p == nil || p.Title.Text == "" {
-		t.Errorf("newFocusPlot 생성 실패")
-	}
-}
-
 func TestPlotFocusTrendsAndRegression(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "graph.png")
-	data := []FocusData{
+	data := []common.FocusData{
 		{Date: "2024-06-01", Categories: map[string]int{"업무": 10, "학습": 20, "취미": 0, "수면": 0, "이동": 0}},
 		{Date: "2024-06-02", Categories: map[string]int{"업무": 20, "학습": 10, "취미": 0, "수면": 0, "이동": 0}},
 	}
-	err := PlotFocusTrendsAndRegression(data, path)
+	imgBytes, err := PlotFocusTrendsAndRegression(data)
 	if err != nil {
 		t.Fatalf("PlotFocusTrendsAndRegression 실패: %v", err)
 	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Errorf("그래프 파일 생성 안됨: %s", path)
+	if len(imgBytes) == 0 {
+		t.Errorf("생성된 PNG 바이트가 비어 있음")
 	}
+	// 실제 파일로 저장해볼 수도 있음 (선택)
+	// path := filepath.Join(tmpDir, "graph.png")
+	// if err := os.WriteFile(path, imgBytes, 0644); err != nil {
+	// 	t.Errorf("PNG 파일 저장 실패: %v", err)
+	// }
 } 

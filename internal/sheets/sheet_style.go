@@ -3,15 +3,15 @@ package sheets
 import (
 	"fmt"
 
-	"github.com/crispy/focus-time-tracker/internal/analyzer"
+	"github.com/crispy/focus-time-tracker/internal/common"
 	"google.golang.org/api/sheets/v4"
 )
 
 // applySheetStyles: 월별 시트에 스타일, 유효성, 조건부 서식 적용
 func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string) error {
 	labelColors := map[string]*sheets.Color{}
-	for _, cat := range analyzer.Categories {
-		rgb := analyzer.CategoryColors[cat]
+	for _, cat := range common.Categories {
+		rgb := common.CategoryColors[cat]
 		labelColors[cat] = &sheets.Color{Red: float64(rgb[0]), Green: float64(rgb[1]), Blue: float64(rgb[2])}
 	}
 	gray := &sheets.Color{Red: 0.95, Green: 0.95, Blue: 0.95}
@@ -94,7 +94,7 @@ func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string
 				Rule: &sheets.DataValidationRule{
 					Condition: &sheets.BooleanCondition{
 						Type:   "ONE_OF_LIST",
-						Values: toConditionValues(analyzer.Categories),
+						Values: toConditionValues(common.Categories),
 					},
 					Strict: true,
 				},
