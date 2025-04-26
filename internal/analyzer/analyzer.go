@@ -34,33 +34,50 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 	// PreparePlotData logic inlined here
 	points := map[string]plotter.XYs{} // 카테고리별 실제 점 데이터
 	regressionLines := map[string]plotter.XYs{} // 카테고리별 회귀선 데이터
-	for _, cat := range common.Categories {
-		points[cat] = makeCategoryPoints(data, cat) // 실제 점 생성
-		regressionLines[cat] = makeRegressionPoints(data, cat) // 회귀선 생성
+	// 정규화된 데이터 준비 (MaxScore > 0인 날만)
+	normData := make([]common.FocusData, 0, len(data))
+	for _, d := range data {
+		if d.MaxScore > 0 {
+			norm := common.FocusData{
+				Date:       d.Date,
+				TotalFocus: int(float64(d.TotalFocus) / float64(d.MaxScore) * 100.0),
+				MaxScore:   d.MaxScore,
+				Categories: map[string]int{},
+				TimeSlots:  d.TimeSlots,
+			}
+			for k, v := range d.Categories {
+				norm.Categories[k] = int(float64(v) / float64(d.MaxScore) * 100.0)
+			}
+			normData = append(normData, norm)
+		}
 	}
-	evalText := makeEvalText(data) // 카테고리별 트렌드 평가 텍스트
+	for _, cat := range common.Categories {
+		points[cat] = makeCategoryPoints(normData, cat) // 실제 점 생성
+		regressionLines[cat] = makeRegressionPoints(normData, cat) // 회귀선 생성
+	}
+	evalText := makeEvalText(normData) // 카테고리별 트렌드 평가 텍스트
 	watermark := makeWatermark() // 워터마크(날짜/시간)
 
-	// aggregateLine 계산: 각 카테고리별로 모든 일자의 평균 (0점 제외), totalFocus로 비율화
+	// aggregateLine 계산: 각 카테고리별로 모든 일자의 평균 (0점 제외), MaxScore로 비율화
 	totalAverages := make([]float64, len(common.Categories))
 	totalFocus := 0.0
 	for i, cat := range common.Categories {
-		sum := 0
-		count := 0
+		sum := 0.0
+		count := 0.0
 		for _, d := range data {
-			if d.Categories == nil {
+			if d.Categories == nil || d.MaxScore == 0 {
 				continue
 			}
 			v, ok := d.Categories[cat]
 			if !ok || v == 0 {
 				continue
 			}
-			sum += v
+			sum += float64(v) / float64(d.MaxScore) * 100.0
 			count++
 		}
 		avg := 0.0
 		if count > 0 {
-			avg = float64(sum) / float64(count)
+			avg = sum / count
 		}
 		totalAverages[i] = avg
 		totalFocus += avg
@@ -76,7 +93,7 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 		aggregateLine[i].Y = ratio
 	}
 
-	return DrawFocusTrends(points, regressionLines, evalText, watermark, aggregateLine, data)
+	return DrawFocusTrends(points, regressionLines, evalText, watermark, aggregateLine, normData)
 }
 
 // PlotTimeSlotAverageFocusAggregatePNG: 전체 데이터를 합산하여 단일 평균 라인 그래프를 그림

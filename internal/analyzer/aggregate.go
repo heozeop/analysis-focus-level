@@ -35,9 +35,11 @@ func AnalyzeFocus(labels []string, scores []int) common.FocusData {
 		timeKey := fmt.Sprintf("%02d:%02d", hour, min)
 		timeSlots[timeKey] += score
 	}
+	maxScore := len(labels) * 5
 	return common.FocusData{
 		Categories: categories,
 		TotalFocus: totalFocus,
+		MaxScore:   maxScore,
 		TimeSlots:  timeSlots,
 	}
 }
