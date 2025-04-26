@@ -190,10 +190,48 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 	p.X.Label.Text = "일자"
 	p.Y.Label.Text = "점수"
 
+	// 오늘 기준 ±6일 x축 생성
+	today := time.Now().Truncate(24 * time.Hour)
+	dates := make([]string, 0, 13)
+	dateToX := map[string]float64{}
+	for i := -6; i <= 6; i++ {
+		d := today.AddDate(0, 0, i)
+		dstr := d.Format("2006-01-02")
+		dates = append(dates, dstr)
+		dateToX[dstr] = float64(i + 6) // x=0~12
+	}
+
+	// x축 눈금 설정
+	ticks := make([]plot.Tick, 0, 13)
+	for i, d := range dates {
+		label := d
+		if i == 6 {
+			label += " (오늘)"
+		}
+		ticks = append(ticks, plot.Tick{Value: float64(i), Label: label})
+	}
+	p.X.Tick.Marker = plot.ConstantTicks(ticks)
+	p.X.Min = 0
+	p.X.Max = 12
+
 	colors := plotutil.SoftColors
 	colorIdx := 0
 	for cat, pts := range points {
-		l, err := plotter.NewLine(pts)
+		// pts의 X를 날짜 기반으로 재설정
+		newPts := make(plotter.XYs, 0, len(pts))
+		for i, pt := range pts {
+			if i >= len(dates) {
+				break
+			}
+			date := dates[i]
+			if x, ok := dateToX[date]; ok {
+				newPts = append(newPts, plotter.XY{X: x, Y: pt.Y})
+			}
+		}
+		if len(newPts) == 0 {
+			continue
+		}
+		l, err := plotter.NewLine(newPts)
 		if err != nil {
 			return nil, err
 		}
@@ -203,35 +241,59 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		p.Legend.Add(cat+"(실제)", l)
 
 		if regPts, ok := regressionLines[cat]; ok {
-			rl, err := plotter.NewLine(regPts)
-			if err != nil {
-				return nil, err
+			newRegPts := make(plotter.XYs, 0, len(regPts))
+			for i, pt := range regPts {
+				if i >= len(dates) {
+					break
+				}
+				date := dates[i]
+				if x, ok := dateToX[date]; ok {
+					newRegPts = append(newRegPts, plotter.XY{X: x, Y: pt.Y})
+				}
 			}
-			rl.Color = colors[colorIdx%len(colors)]
-			rl.Dashes = []vg.Length{vg.Points(4), vg.Points(4)}
-			rl.Width = vg.Points(2)
-			p.Add(rl)
-			p.Legend.Add(cat+"(회귀)", rl)
+			if len(newRegPts) > 0 {
+				rl, err := plotter.NewLine(newRegPts)
+				if err != nil {
+					return nil, err
+				}
+				rl.Color = colors[colorIdx%len(colors)]
+				rl.Dashes = []vg.Length{vg.Points(4), vg.Points(4)}
+				rl.Width = vg.Points(2)
+				p.Add(rl)
+				p.Legend.Add(cat+"(회귀)", rl)
+			}
 		}
 		colorIdx++
 	}
 
 	// aggregateLine이 있으면 굵은 검정색 선으로 추가
 	if aggregateLine != nil && len(aggregateLine) > 0 {
-		aggLine, err := plotter.NewLine(aggregateLine)
-		if err != nil {
-			return nil, err
+		newAgg := make(plotter.XYs, 0, len(aggregateLine))
+		for i, pt := range aggregateLine {
+			if i >= len(dates) {
+				break
+			}
+			date := dates[i]
+			if x, ok := dateToX[date]; ok {
+				newAgg = append(newAgg, plotter.XY{X: x, Y: pt.Y})
+			}
 		}
-		aggLine.Color = color.Black
-		aggLine.Width = vg.Points(4)
-		p.Add(aggLine)
-		p.Legend.Add("전체 평균", aggLine)
+		if len(newAgg) > 0 {
+			aggLine, err := plotter.NewLine(newAgg)
+			if err != nil {
+				return nil, err
+			}
+			aggLine.Color = color.Black
+			aggLine.Width = vg.Points(4)
+			p.Add(aggLine)
+			p.Legend.Add("전체 평균", aggLine)
+		}
 	}
 
 	// 평가 텍스트 추가
 	if evalText != "" {
 		labels, err := plotter.NewLabels(plotter.XYLabels{
-			XYs:    []plotter.XY{{X: 0, Y: -10}},
+			XYs:    []plotter.XY{{X: 6, Y: -10}},
 			Labels: []string{evalText},
 		})
 		if err == nil {
@@ -241,7 +303,7 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 	// 워터마크 추가
 	if watermark != "" {
 		labels, err := plotter.NewLabels(plotter.XYLabels{
-			XYs:    []plotter.XY{{X: 0, Y: -20}},
+			XYs:    []plotter.XY{{X: 6, Y: -20}},
 			Labels: []string{watermark},
 		})
 		if err == nil {
