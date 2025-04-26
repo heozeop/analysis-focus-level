@@ -58,7 +58,7 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 			return err
 		}
 		// 일자별 시간대별 몰입 그래프 저장
-		timeslotGitbook := filepath.Join(repoPath, ".gitbook", "assets", "timeslot-images")
+		timeslotGitbook := filepath.Join(repoPath, ".gitbook", "assets", "timeslot-images.png")
 		timeslotDaily := filepath.Join("dailydata", "timeslot-images", dateStr+".png")
 		if err := SaveTimeSlotGraphs(allData, timeslotGitbook, timeslotDaily); err != nil {
 			return err
