@@ -15,6 +15,8 @@ import (
 )
 
 // NewService: Google Sheets API + Drive API 서비스 생성 (환경변수 GSHEETS_CREDENTIALS_JSON 사용)
+// - ctx: context.Context
+// 반환: sheets.Service, drive.Service, 에러
 func NewService(ctx context.Context) (*sheets.Service, *drive.Service, error) {
 	creds := config.Envs.GSheetsCredentialsJSON
 	if creds == "" {
@@ -37,6 +39,11 @@ func NewService(ctx context.Context) (*sheets.Service, *drive.Service, error) {
 }
 
 // FindSpreadsheetIDByYear: 폴더 내에서 연도별 규칙적 파일명으로 Google Sheets ID 검색
+// - ctx: context.Context
+// - driveSrv: Google Drive API 서비스
+// - folderID: 폴더 ID
+// - year: 연도
+// 반환: 스프레드시트 ID, 에러
 func FindSpreadsheetIDByYear(ctx context.Context, driveSrv *drive.Service, folderID string, year int) (string, error) {
 	name := fmt.Sprintf("%d Focus Log", year)
 	q := fmt.Sprintf("name = '%s' and '%s' in parents and mimeType = 'application/vnd.google-apps.spreadsheet'", name, folderID)
@@ -51,6 +58,10 @@ func FindSpreadsheetIDByYear(ctx context.Context, driveSrv *drive.Service, folde
 }
 
 // ExtractDailyFocusData: 특정 연/월/일의 시트 데이터(라벨, 집중도) 추출 및 FocusData 집계
+// - sheetsSrv: Google Sheets API 서비스
+// - spreadsheetID: 스프레드시트 ID
+// - year, month, day: 연/월/일
+// 반환: FocusData, 날짜 문자열(YYYY-MM-DD), 에러
 func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year, month, day int) (common.FocusData, string, error) {
 	loc, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {

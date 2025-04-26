@@ -12,7 +12,14 @@ import (
 	sheetsv4 "google.golang.org/api/sheets/v4"
 )
 
-// ExtractAndPush orchestrates the full export process
+// ExtractAndPush: 집중도 데이터 추출~저장~git push까지 전체 export orchestration 함수
+// - ctx: context.Context
+// - sheetsSrv: Google Sheets API 서비스
+// - driveSrv: Google Drive API 서비스
+// - folderID: 연도별 스프레드시트가 있는 구글 드라이브 폴더 ID
+// - repoPath: gitbook 저장소 경로
+// - now: 기준 시각 (보통 현재)
+// 반환: 에러 (없으면 nil)
 func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *drivev3.Service, folderID, repoPath string, now time.Time) error {
 	// 1. 한국 시간으로 변환
 	loc, err := time.LoadLocation("Asia/Seoul")

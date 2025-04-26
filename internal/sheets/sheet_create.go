@@ -9,6 +9,11 @@ import (
 )
 
 // createSpreadsheet: 연도별 Google Spreadsheet 생성 및 폴더 이동
+// - sheetsSrv: Google Sheets API 서비스
+// - driveSrv: Google Drive API 서비스
+// - title: 시트 제목
+// - year: 연도
+// 반환: 생성된 스프레드시트 ID, 에러
 func createSpreadsheet(sheetsSrv *sheets.Service, driveSrv *drive.Service, title string, year int) (string, error) {
 	spreadsheet := &sheets.Spreadsheet{
 		Properties: &sheets.SpreadsheetProperties{
@@ -41,6 +46,11 @@ func createSpreadsheet(sheetsSrv *sheets.Service, driveSrv *drive.Service, title
 }
 
 // CreateYearlySheet: 연도별 시트 생성 후 월별 데이터 초기화 및 스타일 적용
+// - sheetsSrv: Google Sheets API 서비스
+// - driveSrv: Google Drive API 서비스
+// - title: 시트 제목
+// - year: 연도
+// 반환: 생성된 스프레드시트 ID, 에러
 func CreateYearlySheet(sheetsSrv *sheets.Service, driveSrv *drive.Service, title string, year int) (string, error) {
 	// 1. 스프레드시트 생성 및 폴더 이동
 	spreadsheetID, err := createSpreadsheet(sheetsSrv, driveSrv, title, year)

@@ -8,11 +8,15 @@ import (
 )
 
 // applySheetStyles: 월별 시트에 스타일, 유효성, 조건부 서식 적용 (카테고리 수만큼 동적 확장)
+// - sheetsSrv: Google Sheets API 서비스
+// - spreadsheetID: 스프레드시트 ID
+// - sheetName: 시트 이름
+// 반환: 에러 (없으면 nil)
 func applySheetStyles(sheetsSrv *sheets.Service, spreadsheetID, sheetName string) error {
 	const maxDays = 31
 	const maxCols = 1 + maxDays*2 // 시간 + (31일*2)
 	categories := common.Categories
-	labelColors := map[string]*sheets.Color{}
+	labelColors := map[string]*sheets.Color{} // 카테고리별 색상 매핑
 	for _, cat := range categories {
 		rgb := common.CategoryColors[cat]
 		labelColors[cat] = &sheets.Color{Red: float64(rgb[0]), Green: float64(rgb[1]), Blue: float64(rgb[2])}
