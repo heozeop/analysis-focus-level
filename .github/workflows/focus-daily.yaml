@@ -44,7 +44,8 @@ jobs:
         run: |
           echo "GSHEETS_CREDENTIALS_JSON=${{ secrets.GSHEETS_CREDENTIALS_JSON }}" >> .env
           echo "GSHEETS_PARENT_FOLDER_ID=${{ secrets.GSHEETS_PARENT_FOLDER_ID }}" >> .env
-          echo "GITBOOK_REPO_PATH=gitbook" >> .env
+          echo "REPO_DOWNLOAD_PATH=${{ env.REPO_DOWNLOAD_PATH }}" >> .env
+          echo "GITBOOK_REPO_PATH=${{ env.GITBOOK_REPO_PATH }}" >> .env
           chmod 600 .env
 
       - name: Run extract

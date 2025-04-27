@@ -49,8 +49,14 @@ func extract() {
 	repoPath := config.Envs.GitbookRepoPath
 	repoDownloadPath := config.Envs.RepoDownloadPath
 
-	if folderID == "" || repoPath == "" || repoDownloadPath == "" {
-		log.Fatal("GSHEETS_PARENT_FOLDER_ID, REPO_DOWNLOAD_PATH 환경변수를 설정하세요.")
+	if folderID == "" {
+		log.Fatal("GSHEETS_PARENT_FOLDER_ID 환경변수를 설정하세요.")
+	}
+	if repoPath == "" {
+		log.Fatal("REPO_PATH 환경변수를 설정하세요.")
+	}
+	if repoDownloadPath == "" {
+		log.Fatal("REPO_DOWNLOAD_PATH 환경변수를 설정하세요.")
 	}
 	dateStr, jsonRelPath, commitMsg, err := exporter.Extract(ctx, sheetsSrv, driveSrv, folderID, repoPath, repoDownloadPath, time.Now())
 	if err != nil {
