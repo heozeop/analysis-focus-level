@@ -47,6 +47,11 @@ jobs:
           echo "GSHEETS_PARENT_FOLDER_ID=${{ secrets.GSHEETS_PARENT_FOLDER_ID }}" >> .env
           chmod 600 .env
 
+      - name: Print env for debug
+        run: |
+          echo "REPO_DOWNLOAD_PATH=$REPO_DOWNLOAD_PATH"
+          echo "GITBOOK_REPO_PATH=$GITBOOK_REPO_PATH"
+
       - name: Run extract
         id: extract
         run: |
