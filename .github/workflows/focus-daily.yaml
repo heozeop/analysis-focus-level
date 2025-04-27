@@ -48,7 +48,20 @@ jobs:
           chmod 600 .env
 
       - name: Run extract
-        run: go run cmd/focus/main.go extract
+        id: extract
+        run: |
+          go run cmd/focus/main.go extract > extract_out.txt
+          tail -n 1 extract_out.txt > extract_result.txt
+          echo "result=$(cat extract_result.txt)" >> $GITHUB_OUTPUT
+
+      - name: Run push with extract result
+        run: |
+          IFS="|" read -r DATESTR JSONPATH COMMITMSG <<< "${{ steps.extract.outputs.result }}"
+          go run cmd/focus/main.go push "$DATESTR" "$JSONPATH" "$COMMITMSG"
+
+      - name: Remove extract_out.txt (cleanup)
+        if: always()
+        run: rm -f extract_out.txt extract_result.txt
 
       - name: Remove .env (cleanup)
         if: always()

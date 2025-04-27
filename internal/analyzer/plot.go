@@ -177,15 +177,16 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// DrawFocusTrends: 준비된 데이터(points, regressionLines, evalText, watermark, aggregateLine)로 그림만 그림
+// DrawFocusTrends: 준비된 데이터(points, regressionLines, evalText, watermark, aggregateLine, categories)로 그림만 그림
 // - points: 카테고리별 실제 점 데이터
 // - regressionLines: 카테고리별 회귀선 데이터
 // - evalText: 평가 텍스트
 // - watermark: 워터마크(날짜/시간)
 // - aggregateLine: 전체 평균 라인 (없으면 nil)
 // - data: 추가 데이터 배열
+// - categories: 동적으로 추출된 카테고리 목록
 // 반환: PNG 이미지 []byte, 에러
-func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string, aggregateLine plotter.XYs, data []common.FocusData) ([]byte, error) {
+func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string, aggregateLine plotter.XYs, data []common.FocusData, categories []string) ([]byte, error) {
 	p := plot.New()
 	p.Title.Text = "카테고리별 트렌드 및 회귀선"
 	p.X.Label.Text = "일자"
@@ -217,7 +218,8 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 
 	colors := plotutil.SoftColors
 	colorIdx := 0
-	for cat, pts := range points {
+	for _, cat := range categories {
+		pts := points[cat]
 		// pts의 X를 실제 일자 기반으로 재설정 (data[i].Date 사용)
 		newPts := make(plotter.XYs, 0, len(pts))
 		for i, pt := range pts {
@@ -347,8 +349,16 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		}
 	}
 
+	// 색상 설명 추가
+	legendDesc := "빨간색(업무), 파란색(학습), 초록색(취미), 보라색(수면), 주황색(이동), 검정(전체 평균)"
+	labels, _ := plotter.NewLabels(plotter.XYLabels{
+		XYs:    []plotter.XY{{X: 6, Y: 5}},
+		Labels: []string{legendDesc},
+	})
+	p.Add(labels)
+
 	p.Y.Min = 0
-	p.Y.Max = 725
+	p.Y.Max = 100
 
 	buf := &bytes.Buffer{}
 	w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")

@@ -147,3 +147,4 @@ func ExtractDailyFocusData(sheetsSrv *sheets.Service, spreadsheetID string, year
 	sheetsAPI := &RealSheetsAPI{srv: sheetsSrv}
 	return ExtractDailyFocusDataAPI(sheetsAPI, spreadsheetID, year, month, day)
 }
+ 

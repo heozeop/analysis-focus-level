@@ -12,19 +12,13 @@ import (
 	sheetsv4 "google.golang.org/api/sheets/v4"
 )
 
-// ExtractAndPush: 집중도 데이터 추출~저장~git push까지 전체 export orchestration 함수
-// - ctx: context.Context
-// - sheetsSrv: Google Sheets API 서비스
-// - driveSrv: Google Drive API 서비스
-// - folderID: 연도별 스프레드시트가 있는 구글 드라이브 폴더 ID
-// - repoPath: gitbook 저장소 경로
-// - now: 기준 시각 (보통 현재)
-// 반환: 에러 (없으면 nil)
-func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *drivev3.Service, folderID, repoPath string, repoDownloadPath string, now time.Time) error {
+// Extract: 집중도 데이터 추출~저장~그래프 생성까지 수행, push는 하지 않음
+// 반환: dateStr, jsonRelPath, commitMsg, error
+func Extract(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *drivev3.Service, folderID, repoPath string, repoDownloadPath string, now time.Time) (string, string, string, error) {
 	// 1. 한국 시간으로 변환
 	loc, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		return fmt.Errorf("Asia/Seoul 타임존 로드 실패: %w", err)
+		return "", "", "", fmt.Errorf("Asia/Seoul 타임존 로드 실패: %w", err)
 	}
 	now = now.In(loc)
 
@@ -35,26 +29,26 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 	// 3. Google Sheets에서 해당 연도 스프레드시트 ID 찾기
 	spreadsheetID, err := sheets.FindSpreadsheetIDByYear(ctx, driveSrv, folderID, year)
 	if err != nil {
-		return fmt.Errorf("스프레드시트 ID 검색 실패: %w", err)
+		return "", "", "", fmt.Errorf("스프레드시트 ID 검색 실패: %w", err)
 	}
 
 	// 4. 어제 날짜의 집중도 데이터 추출
 	data, dateStr, err := sheets.ExtractDailyFocusData(sheetsSrv, spreadsheetID, year, int(month), day)
 	if err != nil {
-		return fmt.Errorf("시트 데이터 파싱 실패: %w", err)
+		return "", "", "", fmt.Errorf("시트 데이터 파싱 실패: %w", err)
 	}
 
 	// 5. JSON 파일로 저장
 	jsonRelPath := filepath.Join("dailydata", "raw", dateStr+".json")
 	commitMsg := "자동 집중도 데이터: " + dateStr
 	if err := SaveJSON(data, jsonRelPath); err != nil {
-		return err
+		return "", "", "", err
 	}
 
 	// 6. 최근 7일치 데이터 로드
 	allData, err := LoadRecentFocusData(filepath.Join("dailydata", "raw"), 7)
 	if err != nil {
-		return err
+		return "", "", "", err
 	}
 
 	// 7. 그래프 이미지 생성 (gitbook, dailydata)
@@ -62,16 +56,21 @@ func ExtractAndPush(ctx context.Context, sheetsSrv *sheetsv4.Service, driveSrv *
 		graphGitbook := filepath.Join(repoPath, repoDownloadPath, "graph.png")
 		graphDaily := filepath.Join("dailydata", "images", dateStr+".png")
 		if err := GenerateGraphFile(allData, graphGitbook, graphDaily); err != nil {
-			return err
+			return "", "", "", err
 		}
 		// 일자별 시간대별 몰입 그래프 저장
 		timeslotGitbook := filepath.Join(repoPath, repoDownloadPath, "timeslot-images.png")
 		timeslotDaily := filepath.Join("dailydata", "timeslot-images", dateStr+".png")
 		if err := SaveTimeSlotGraphs(allData, timeslotGitbook, timeslotDaily); err != nil {
-			return err
+			return "", "", "", err
 		}
 	}
 
+	return dateStr, jsonRelPath, commitMsg, nil
+}
+
+// Push: gitbook repo checkout, push, main repo push
+func Push(repoPath, dateStr, jsonRelPath, commitMsg string) error {
 	// 8. gitbook repo main 브랜치로 checkout
 	exec.Command("git", "-C", repoPath, "checkout", "main").Run()
 

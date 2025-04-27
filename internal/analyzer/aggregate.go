@@ -13,8 +13,10 @@ import (
 // 반환: FocusData (카테고리별 합계, 총점, 시간대별 점수)
 func AnalyzeFocus(labels []string, scores []int) common.FocusData {
 	categories := make(map[string]int) // 카테고리별 점수 합계
+	maxScore := make(map[string]int)   // 카테고리별 최대 점수
 	for _, cat := range common.Categories {
 		categories[cat] = 0
+		maxScore[cat] = 0
 	}
 	totalFocus := 0 // 하루 총 몰입 점수
 	timeSlots := make(map[string]int) // 시간대별 점수 합계 (ex: "09:30" -> 40)
@@ -25,6 +27,7 @@ func AnalyzeFocus(labels []string, scores []int) common.FocusData {
 		}
 		if _, ok := categories[label]; ok {
 			categories[label] += score // 카테고리별 합산
+			maxScore[label] += 5       // 해당 카테고리 row 수 * 5
 			if label != "이동" {
 				totalFocus += score // "이동" 제외 총점
 			}
@@ -35,7 +38,6 @@ func AnalyzeFocus(labels []string, scores []int) common.FocusData {
 		timeKey := fmt.Sprintf("%02d:%02d", hour, min)
 		timeSlots[timeKey] += score
 	}
-	maxScore := len(labels) * 5
 	return common.FocusData{
 		Categories: categories,
 		TotalFocus: totalFocus,

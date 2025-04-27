@@ -31,48 +31,69 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("분석할 데이터가 없습니다")
 	}
-	// PreparePlotData logic inlined here
-	points := map[string]plotter.XYs{} // 카테고리별 실제 점 데이터
-	regressionLines := map[string]plotter.XYs{} // 카테고리별 회귀선 데이터
-	// 정규화된 데이터 준비 (MaxScore > 0인 날만)
-	normData := make([]common.FocusData, 0, len(data))
+
+	// 1. 모든 데이터에서 등장한 카테고리 동적 추출
+	categorySet := make(map[string]struct{})
 	for _, d := range data {
-		if d.MaxScore > 0 {
-			norm := common.FocusData{
-				Date:       d.Date,
-				TotalFocus: int(float64(d.TotalFocus) / float64(d.MaxScore) * 100.0),
-				MaxScore:   d.MaxScore,
-				Categories: map[string]int{},
-				TimeSlots:  d.TimeSlots,
-			}
-			for k, v := range d.Categories {
-				norm.Categories[k] = int(float64(v) / float64(d.MaxScore) * 100.0)
-			}
-			normData = append(normData, norm)
+		for cat := range d.Categories {
+			categorySet[cat] = struct{}{}
 		}
 	}
-	for _, cat := range common.Categories {
-		points[cat] = makeCategoryPoints(normData, cat) // 실제 점 생성
-		regressionLines[cat] = makeRegressionPoints(normData, cat) // 회귀선 생성
+	categories := make([]string, 0, len(categorySet))
+	for cat := range categorySet {
+		categories = append(categories, cat)
 	}
-	evalText := makeEvalText(normData) // 카테고리별 트렌드 평가 텍스트
-	watermark := makeWatermark() // 워터마크(날짜/시간)
 
-	// aggregateLine 계산: 각 카테고리별로 모든 일자의 평균 (0점 제외), MaxScore로 비율화
-	totalAverages := make([]float64, len(common.Categories))
+	// 2. 정규화된 데이터 준비 (카테고리별 MaxScore[cat] > 0인 날만)
+	normData := make([]common.FocusData, 0, len(data))
+	for _, d := range data {
+		norm := common.FocusData{
+			Date:       d.Date,
+			TotalFocus: d.TotalFocus,
+			MaxScore:   d.MaxScore,
+			Categories: map[string]int{},
+			TimeSlots:  d.TimeSlots,
+		}
+		for k, v := range d.Categories {
+			max, ok := d.MaxScore[k]
+			if ok && max > 0 {
+				norm.Categories[k] = int(float64(v) / float64(max) * 100.0)
+			} else {
+				norm.Categories[k] = 0
+			}
+		}
+		normData = append(normData, norm)
+	}
+
+	// 3. points, regressionLines 동적 카테고리로 생성
+	points := map[string]plotter.XYs{}
+	regressionLines := map[string]plotter.XYs{}
+	for _, cat := range categories {
+		points[cat] = makeCategoryPoints(normData, cat)
+		regressionLines[cat] = makeRegressionPoints(normData, cat)
+	}
+	evalText := makeEvalText(normData)
+	watermark := makeWatermark()
+
+	// 4. aggregateLine 계산: 동적 카테고리별로 모든 일자의 평균 (0점 제외), MaxScore로 비율화
+	totalAverages := make([]float64, len(categories))
 	totalFocus := 0.0
-	for i, cat := range common.Categories {
+	for i, cat := range categories {
 		sum := 0.0
 		count := 0.0
 		for _, d := range data {
-			if d.Categories == nil || d.MaxScore == 0 {
+			if d.Categories == nil || d.MaxScore == nil {
+				continue
+			}
+			max, ok := d.MaxScore[cat]
+			if !ok || max == 0 {
 				continue
 			}
 			v, ok := d.Categories[cat]
 			if !ok || v == 0 {
 				continue
 			}
-			sum += float64(v) / float64(d.MaxScore) * 100.0
+			sum += float64(v) / float64(max) * 100.0
 			count++
 		}
 		avg := 0.0
@@ -83,7 +104,7 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 		totalFocus += avg
 	}
 
-	aggregateLine := make(plotter.XYs, len(common.Categories))
+	aggregateLine := make(plotter.XYs, len(categories))
 	for i, avg := range totalAverages {
 		ratio := 0.0
 		if totalFocus > 0 {
@@ -93,7 +114,8 @@ func PlotFocusTrendsAndRegression(data []common.FocusData) ([]byte, error) {
 		aggregateLine[i].Y = ratio
 	}
 
-	return DrawFocusTrends(points, regressionLines, evalText, watermark, aggregateLine, normData)
+	// 5. DrawFocusTrends에 동적 카테고리 전달
+	return DrawFocusTrends(points, regressionLines, evalText, watermark, aggregateLine, normData, categories)
 }
 
 // PlotTimeSlotAverageFocusAggregatePNG: 전체 데이터를 합산하여 단일 평균 라인 그래프를 그림
