@@ -100,12 +100,13 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 	p.X.LineStyle.Width = vg.Points(1)
 	p.X.LineStyle.Color = color.Gray{Y: 128}
 
-	// 워터마크 추가
-	if wm, err := plotter.NewLabels(plotter.XYLabels{
-		XYs:    []plotter.XY{{X: 12, Y: p.Y.Min - 5}},
+	// 워터마크 추가 (오른쪽 하단에 보이도록 위치 조정)
+	labels, err := plotter.NewLabels(plotter.XYLabels{
+		XYs:    []plotter.XY{{X: 23, Y: 5}},
 		Labels: []string{makeWatermark()},
-	}); err == nil {
-		p.Add(wm)
+	})
+	if err == nil && labels != nil && len(labels.Labels) > 0 && len(labels.XYs) > 0 {
+		p.Add(labels)
 	}
 
 	colors := plotutil.SoftColors
