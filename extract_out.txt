@@ -1,2 +1,2 @@
-추출 완료! dateStr: 2025-04-27, jsonRelPath: dailydata/raw/2025-04-27.json, commitMsg: 자동 집중도 데이터: 2025-04-27
-2025-04-27|dailydata/raw/2025-04-27.json|자동 집중도 데이터: 2025-04-27
+추출 완료! dateStr: 2025-04-28, jsonRelPath: dailydata/raw/2025-04-28.json, commitMsg: 자동 집중도 데이터: 2025-04-28
+2025-04-28|dailydata/raw/2025-04-28.json|자동 집중도 데이터: 2025-04-28
