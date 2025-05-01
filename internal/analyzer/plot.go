@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"image/color"
+	"math"
+	"os"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -12,7 +15,56 @@ import (
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/plotutil"
 	"gonum.org/v1/plot/vg"
+	"gonum.org/v1/plot/vg/draw"
 )
+
+// FindKoreanFont attempts to find a Korean font on the system
+func FindKoreanFont() string {
+	// Check if KOREAN_FONT_PATH is set in environment
+	if fontPath := os.Getenv("KOREAN_FONT_PATH"); fontPath != "" {
+		if _, err := os.Stat(fontPath); err == nil {
+			return fontPath
+		}
+	}
+
+	// Check the fonts directory first (relative to current directory)
+	fontPaths := []string{
+		"fonts/D2Coding/D2Coding-Ver1.3.2-20180524.ttf",
+		"fonts/D2CodingLigature/D2Coding-Ver1.3.2-20180524-ligature.ttf",
+	}
+	
+	// Get absolute path to project root
+	cwd, err := os.Getwd()
+	if err == nil {
+		for _, path := range fontPaths {
+			absPath := filepath.Join(cwd, path)
+			if _, err := os.Stat(absPath); err == nil {
+				fmt.Printf("Found Korean font: %s\n", absPath)
+				return absPath
+			}
+		}
+	}
+	
+	// If we didn't find any custom fonts, try system fonts
+	systemFontPaths := []string{
+		// Linux
+	}
+	
+	// Try user's home directory
+	home, err := os.UserHomeDir()
+	if err == nil {
+		// Linux user fonts
+		systemFontPaths = append(systemFontPaths, filepath.Join(home, ".fonts/NanumGothic.ttf"))
+	}
+	
+	for _, path := range systemFontPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	
+	return ""
+}
 
 // makeCategoryPoints: 카테고리별 데이터 포인트 생성
 // - data: 여러 일자의 FocusData 배열
@@ -89,16 +141,46 @@ func makeWatermark() string {
 // - data: 여러 일자의 FocusData 배열
 // 반환: PNG 이미지 []byte, 에러
 func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
+	// Initialize Korean font
+	if err := InitKoreanFont(); err != nil {
+		fmt.Printf("Warning: failed to initialize Korean font: %v\n", err)
+		fmt.Println("Korean characters may not display correctly.")
+	}
+
 	p := plot.New()
 	p.Title.Text = "시간대별 일자별 평균 몰입 점수"
+	// 제목과 라벨 사이에 여백 늘리기
+	p.Title.Padding = vg.Points(10)
+	
 	p.X.Label.Text = "시간"
 	p.Y.Label.Text = "평균 몰입 점수"
+	
+	// 라벨과 축 사이 여백 늘리기
+	p.X.Label.Padding = vg.Points(10)
+	p.Y.Label.Padding = vg.Points(10)
+	
+	// 축과 데이터 사이 여백 늘리기
+	p.X.Padding = vg.Points(5)
+	p.Y.Padding = vg.Points(5)
+	
+	// 폰트 경로 출력 (디버그용)
+	fontPath := FindKoreanFont()
+	if fontPath != "" {
+		fmt.Printf("Using Korean font: %s\n", fontPath)
+	} else {
+		fmt.Println("Warning: Korean font not found. Korean characters may not display correctly.")
+	}
 
+	// X축 눈금 간격 설정
 	p.X.Tick.Marker = plot.ConstantTicks([]plot.Tick{
 		{Value: 0, Label: "0"}, {Value: 6, Label: "6"}, {Value: 12, Label: "12"}, {Value: 18, Label: "18"}, {Value: 24, Label: "24"},
 	})
 	p.X.LineStyle.Width = vg.Points(1)
 	p.X.LineStyle.Color = color.Gray{Y: 128}
+	
+	// 눈금 레이블 크기 조정
+	p.X.Tick.Label.Font.Size = vg.Points(10)
+	p.Y.Tick.Label.Font.Size = vg.Points(10)
 
 	// 워터마크 추가 (오른쪽 하단에 보이도록 위치 조정)
 	labels, err := plotter.NewLabels(plotter.XYLabels{
@@ -106,6 +188,8 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 		Labels: []string{makeWatermark()},
 	})
 	if err == nil && labels != nil && len(labels.Labels) > 0 && len(labels.XYs) > 0 {
+		// 워터마크 글꼴 크기 조정
+		labels.TextStyle[0].Font.Size = vg.Points(8)
 		p.Add(labels)
 	}
 
@@ -163,11 +247,23 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 		p.Add(l)
 		p.Legend.Add(d.Date, l)
 	}
+	
+	// 범례 설정
+	p.Legend.Top = true
+	p.Legend.Left = false
+	p.Legend.XOffs = vg.Points(-10) 
+	p.Legend.YOffs = vg.Points(10)
+	p.Legend.Padding = vg.Points(8)
+	p.Legend.TextStyle.Font.Size = vg.Points(10)
+	p.Legend.ThumbnailWidth = vg.Points(30)
+	
 	p.X.Min = 0
 	p.X.Max = 24
 	p.Y.Min = 0
+	
 	buf := &bytes.Buffer{}
-	w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")
+	// 이미지 크기를 키워서 여백을 더 확보
+	w, err := p.WriterTo(vg.Points(1280), vg.Points(640), "png")
 	if err != nil {
 		return nil, err
 	}
@@ -188,10 +284,35 @@ func PlotTimeSlotAverageFocusPNG(data []common.FocusData) ([]byte, error) {
 // - categories: 동적으로 추출된 카테고리 목록
 // 반환: PNG 이미지 []byte, 에러
 func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, watermark string, aggregateLine plotter.XYs, data []common.FocusData, categories []string) ([]byte, error) {
+	// Initialize Korean font
+	if err := InitKoreanFont(); err != nil {
+		fmt.Printf("Warning: failed to initialize Korean font: %v\n", err)
+		fmt.Println("Korean characters may not display correctly.")
+	}
+	
 	p := plot.New()
 	p.Title.Text = "카테고리별 트렌드 및 회귀선"
+	// 제목과 라벨 사이에 여백 늘리기
+	p.Title.Padding = vg.Points(10)
+	
 	p.X.Label.Text = "일자"
 	p.Y.Label.Text = "점수"
+	
+	// 라벨과 축 사이 여백 늘리기
+	p.X.Label.Padding = vg.Points(10)
+	p.Y.Label.Padding = vg.Points(10)
+	
+	// 축과 데이터 사이 여백 늘리기
+	p.X.Padding = vg.Points(5)
+	p.Y.Padding = vg.Points(5)
+	
+	// 폰트 경로 출력 (디버그용)
+	fontPath := FindKoreanFont()
+	if fontPath != "" {
+		fmt.Printf("Using Korean font: %s\n", fontPath)
+	} else {
+		fmt.Println("Warning: Korean font not found. Korean characters may not display correctly.")
+	}
 
 	// 오늘 기준 ±6일 x축 생성
 	today := time.Now().Truncate(24 * time.Hour)
@@ -204,16 +325,32 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		dateToX[dstr] = float64(i + 6) // x=0~12
 	}
 
-	// x축 눈금 설정
+	// x축 눈금 설정 - 레이블 간격 더 넓게 (반절만 표시)
 	ticks := make([]plot.Tick, 0, 13)
 	for i, d := range dates {
-		label := d
-		if i == 6 {
-			label += " (오늘)"
+		// 표시 간격 넓히기 (짝수 인덱스만 레이블 표시)
+		if i%2 == 0 {
+			label := d
+			if i == 6 {
+				label += " (오늘)"
+			}
+			ticks = append(ticks, plot.Tick{Value: float64(i), Label: label})
+		} else {
+			// 레이블 없이 눈금만 표시
+			ticks = append(ticks, plot.Tick{Value: float64(i), Label: ""})
 		}
-		ticks = append(ticks, plot.Tick{Value: float64(i), Label: label})
 	}
 	p.X.Tick.Marker = plot.ConstantTicks(ticks)
+	
+	// X축 레이블 회전 (가독성 향상)
+	p.X.Tick.Label.Rotation = math.Pi / 6
+	p.X.Tick.Label.YAlign = draw.YCenter
+	p.X.Tick.Label.XAlign = draw.XRight
+	
+	// 레이블 글꼴 크기 조정
+	p.X.Tick.Label.Font.Size = vg.Points(10)
+	p.Y.Tick.Label.Font.Size = vg.Points(10)
+	
 	p.X.Min = 0
 	p.X.Max = 12
 
@@ -329,6 +466,14 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 		}
 	}
 
+	// 범례 설정
+	p.Legend.Top = true
+	p.Legend.XOffs = vg.Points(-10)
+	p.Legend.YOffs = vg.Points(10)
+	p.Legend.Padding = vg.Points(8)   // 범례 내부 여백
+	p.Legend.TextStyle.Font.Size = vg.Points(10)
+	p.Legend.ThumbnailWidth = vg.Points(30)  // 범례 썸네일 크기
+
 	// 평가 텍스트 추가
 	if evalText != "" {
 		labels, err := plotter.NewLabels(plotter.XYLabels{
@@ -336,6 +481,7 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 			Labels: []string{evalText},
 		})
 		if err == nil {
+			labels.TextStyle[0].Font.Size = vg.Points(10)
 			p.Add(labels)
 		}
 	}
@@ -346,23 +492,39 @@ func DrawFocusTrends(points, regressionLines map[string]plotter.XYs, evalText, w
 			Labels: []string{watermark},
 		})
 		if err == nil {
+			labels.TextStyle[0].Font.Size = vg.Points(8)
 			p.Add(labels)
 		}
 	}
 
-	// 색상 설명 추가
-	legendDesc := "빨간색(업무), 파란색(학습), 초록색(취미), 보라색(수면), 주황색(이동), 검정(전체 평균)"
-	labels, _ := plotter.NewLabels(plotter.XYLabels{
-		XYs:    []plotter.XY{{X: 6, Y: 5}},
-		Labels: []string{legendDesc},
-	})
-	p.Add(labels)
+	// 색상 설명 추가 - 별도 라벨로 나누기
+	legendDescs := []string{
+		"빨간색(업무)",
+		"파란색(학습)",
+		"초록색(취미)",
+		"보라색(수면)",
+		"주황색(이동)",
+		"검정(전체 평균)",
+	}
+	
+	for i, desc := range legendDescs {
+		posX := float64(i*2)  // 간격을 두고 배치
+		labels, _ := plotter.NewLabels(plotter.XYLabels{
+			XYs:    []plotter.XY{{X: posX, Y: 5}},
+			Labels: []string{desc},
+		})
+		if labels != nil {
+			labels.TextStyle[0].Font.Size = vg.Points(9)
+			p.Add(labels)
+		}
+	}
 
 	p.Y.Min = 0
 	p.Y.Max = 100
 
 	buf := &bytes.Buffer{}
-	w, err := p.WriterTo(vg.Points(1024), vg.Points(512), "png")
+	// 이미지 크기를 키워서 여백을 더 확보
+	w, err := p.WriterTo(vg.Points(1280), vg.Points(640), "png")
 	if err != nil {
 		return nil, err
 	}
