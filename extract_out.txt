@@ -6,5 +6,5 @@ Found Korean font: /home/runner/work/analysis-focus-level/analysis-focus-level/f
 Successfully registered Korean font from: /home/runner/work/analysis-focus-level/analysis-focus-level/fonts/D2Coding/D2Coding-Ver1.3.2-20180524.ttf
 Found Korean font: /home/runner/work/analysis-focus-level/analysis-focus-level/fonts/D2Coding/D2Coding-Ver1.3.2-20180524.ttf
 Using Korean font: /home/runner/work/analysis-focus-level/analysis-focus-level/fonts/D2Coding/D2Coding-Ver1.3.2-20180524.ttf
-추출 완료! dateStr: 2025-05-20, jsonRelPath: dailydata/raw/2025-05-20.json, commitMsg: 자동 집중도 데이터: 2025-05-20
-2025-05-20|dailydata/raw/2025-05-20.json|자동 집중도 데이터: 2025-05-20
+추출 완료! dateStr: 2025-05-21, jsonRelPath: dailydata/raw/2025-05-21.json, commitMsg: 자동 집중도 데이터: 2025-05-21
+2025-05-21|dailydata/raw/2025-05-21.json|자동 집중도 데이터: 2025-05-21
